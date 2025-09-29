@@ -1,0 +1,218 @@
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+
+export default function Login() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [focusField, setFocusField] = useState("");
+  const [buttonHover, setButtonHover] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
+
+  const colors = {
+    topBefore: "#1a1a1a",
+    topAfter: "#333333",
+    bottomBefore: "#dcd7c9",
+    bottomAfter: "#f5f5f5",
+  };
+
+  const inputStyle = {
+    borderWidth: "1px",
+    borderStyle: "solid",
+    borderColor: "#ccc",
+    width: "100%",
+    padding: "0.75rem 1rem",
+    margin: "5px 0",
+    borderRadius: "4px",
+    fontSize: "1rem",
+    outline: "none",
+    backgroundColor: "#333333",
+    color: "#f5f5f5",
+  };
+
+  const inputFocusStyle = {
+    borderColor: "#f5f5f5",
+    boxShadow: "0 0 0 3px rgba(255,255,255,0.1)",
+  };
+
+  const buttonStyle = {
+    marginTop: "1rem",
+    padding: "0.75rem",
+    background: buttonHover ? "#333333" : "#1a1a1a",
+    color: "#f5f5f5",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "1rem",
+    fontWeight: 500,
+    transition: "all 0.3s",
+  };
+
+  const shapeStyle = (rotate, background) => ({
+    position: "absolute",
+    width: "200vmax",
+    height: "200vmax",
+    top: "50%",
+    left: "50%",
+    marginTop: "-100vmax",
+    transform: `rotate(${rotate}deg)`,
+    transformOrigin: hovered ? "-200px 50%" : "0 50%",
+    marginLeft: hovered ? "200px" : "0px",
+    background: background,
+    opacity: 0.65,
+    transition: "all 0.5s cubic-bezier(0.445, 0.05, 0, 1)",
+    zIndex: 1,
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(""); // Clear previous errors
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        return setError(data.message || "Login failed");
+      }
+
+      // Save token and navigate to dashboard
+      localStorage.setItem("token", data.token);
+      navigate("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError("Network error: Could not connect to backend");
+    }
+  };
+
+  return (
+    <div
+      style={{
+        position: "relative",
+        width: "100%",
+        height: "100vh",
+        overflow: "hidden",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "#f5f5f5",
+      }}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      {/* Animated shapes */}
+      <div style={shapeStyle(45, colors.topBefore)} />
+      <div style={shapeStyle(135, colors.topAfter)} />
+      <div style={shapeStyle(-45, colors.bottomBefore)} />
+      <div style={shapeStyle(-135, colors.bottomAfter)} />
+
+      {/* Main Panel */}
+      <div
+        style={{
+          position: "relative",
+          width: "800px",
+          maxWidth: "90vw",
+          height: "500px",
+          borderRadius: "2rem",
+          display: "flex",
+          overflow: "hidden",
+          boxShadow: "-1px -2px 42px -19px rgba(0,0,0,0.2)",
+          backgroundColor: "#fff",
+          zIndex: 10,
+          opacity: hovered ? 1 : 0,
+          transition: "opacity 0.5s cubic-bezier(0.445, 0.05, 0, 1)",
+        }}
+      >
+        {/* Left Form Panel */}
+        <div
+          style={{
+            flex: 1,
+            padding: "50px",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            backgroundColor: "#fff",
+          }}
+        >
+          <h2 style={{ marginBottom: "0.5rem", color: "#1a1a1a" }}>
+            Welcome Back
+          </h2>
+          <p style={{ marginBottom: "1.5rem", color: "#555" }}>
+            Enter your credentials to access your account and continue managing your tasks.
+          </p>
+          {error && <p style={{ color: "red", marginBottom: "1rem" }}>{error}</p>}
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: "flex", flexDirection: "column" }}
+          >
+            <input
+              type="email"
+              placeholder="Email Address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onFocus={() => setFocusField("email")}
+              onBlur={() => setFocusField("")}
+              style={{ ...inputStyle, ...(focusField === "email" ? inputFocusStyle : {}) }}
+              required
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onFocus={() => setFocusField("password")}
+              onBlur={() => setFocusField("")}
+              style={{ ...inputStyle, ...(focusField === "password" ? inputFocusStyle : {}) }}
+              required
+            />
+            <button
+              type="submit"
+              style={buttonStyle}
+              onMouseEnter={() => setButtonHover(true)}
+              onMouseLeave={() => setButtonHover(false)}
+            >
+              Login
+            </button>
+          </form>
+        </div>
+
+        {/* Right Welcome Panel */}
+        <div
+          style={{
+            flex: 1,
+            backgroundColor: "#1a1a1a",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "center",
+            alignItems: "center",
+            color: "#f5f5f5",
+            padding: "50px",
+          }}
+        >
+          <h2>New Here?</h2>
+          <p style={{ marginBottom: "2rem" }}>
+            Create a free account today to start organizing your tasks efficiently.
+          </p>
+          <Link
+            to="/register"
+            style={{
+              textDecoration: "none",
+              padding: "0.75rem 2rem",
+              backgroundColor: "#f5f5f5",
+              color: "#1a1a1a",
+              borderRadius: "4px",
+              fontWeight: "bold",
+            }}
+          >
+            SIGN UP
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
