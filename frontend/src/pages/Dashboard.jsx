@@ -1,59 +1,10 @@
 import React from "react";
-import { Bar } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
-
-ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 export default function Dashboard() {
   const user = {
     name: "John Smith",
     profileCompletion: 75,
-    totalEarnings: 12827.39,
-    totalVisit: 383930494,
-    totalShare: 281910289,
-    skills: {
-      JavaScript: 80,
-      React: 75,
-      NodeJS: 65,
-      CSS: 70,
-      Python: 60,
-    },
     desiredRoles: ["Full Stack Developer", "Frontend Developer", "UI/UX Designer"],
-  };
-
-  const skillData = {
-    labels: Object.keys(user.skills),
-    datasets: [
-      {
-        label: "Skill Level (%)",
-        data: Object.values(user.skills),
-        backgroundColor: "rgba(54, 162, 235, 0.6)",
-        borderColor: "rgba(54, 162, 235, 1)",
-        borderWidth: 1,
-      },
-    ],
-  };
-
-  const skillOptions = {
-    responsive: true,
-    plugins: {
-      legend: { display: false },
-      title: { display: true, text: "Skills Overview" },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-      },
-    },
   };
 
   return (
@@ -85,27 +36,6 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div style={{ flex: 1, backgroundColor: "#ecf0f1", padding: "20px" }}>
-        {/* Statistics */}
-        <div style={{ display: "flex", gap: "20px", marginBottom: "2rem" }}>
-          <div style={{ flex: 1, padding: "20px", backgroundColor: "#3498db", color: "#fff", borderRadius: "10px" }}>
-            <h4>Total Earnings</h4>
-            <h2>${user.totalEarnings.toLocaleString()}</h2>
-          </div>
-          <div style={{ flex: 1, padding: "20px", backgroundColor: "#fff", borderRadius: "10px" }}>
-            <h4>Total Visit</h4>
-            <h2>{user.totalVisit.toLocaleString()}</h2>
-          </div>
-          <div style={{ flex: 1, padding: "20px", backgroundColor: "#fff", borderRadius: "10px" }}>
-            <h4>Total Share</h4>
-            <h2>{user.totalShare.toLocaleString()}</h2>
-          </div>
-        </div>
-
-        {/* Skills Bar Graph */}
-        <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "10px", marginBottom: "2rem" }}>
-          <Bar data={skillData} options={skillOptions} />
-        </div>
-
         {/* Desired Roles */}
         <div style={{ backgroundColor: "#fff", padding: "20px", borderRadius: "10px" }}>
           <h4>Desired Roles</h4>

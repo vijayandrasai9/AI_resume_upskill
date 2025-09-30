@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require("mongoose");
 
 const skillSchema = new mongoose.Schema({
   name: String,
@@ -20,4 +20,5 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-export default mongoose.model('User', userSchema);
+// Export the model, not the schema!
+module.exports = mongoose.model("User", userSchema);  // ✅ CommonJS export

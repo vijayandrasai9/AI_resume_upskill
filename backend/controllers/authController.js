@@ -19,8 +19,10 @@ exports.register = async (req, res) => {
 
     res.status(201).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Auth register error:", err && err.stack ? err.stack : err);
+    const payload = { message: "Server error" };
+    if (process.env.NODE_ENV !== "production") payload.error = err?.message;
+    res.status(500).json(payload);
   }
 };
 
@@ -38,7 +40,9 @@ exports.login = async (req, res) => {
 
     res.status(200).json({ token, user: { id: user._id, name: user.name, email: user.email } });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Auth login error:", err && err.stack ? err.stack : err);
+    const payload = { message: "Server error" };
+    if (process.env.NODE_ENV !== "production") payload.error = err?.message;
+    res.status(500).json(payload);
   }
 };
