@@ -42,7 +42,7 @@ export default function Dashboard() {
   const [activities, setActivities] = useState([]);
   const [newRole, setNewRole] = useState("");
 
-  const [resumeFiles, setResumeFiles] = useState([]); // [{_id?, name, uploadedAt, url}]
+  const [resumeFiles, setResumeFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
 
@@ -133,14 +133,12 @@ export default function Dashboard() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.message || "Upload failed");
-      // optimistic append
       setResumeFiles((prev) => [
         { name: file.name, uploadedAt: new Date().toISOString(), url: data?.url || "" },
         ...prev,
       ]);
-      // Optionally refresh from server
       try {
-        const rr = await fetch("/api/resumes", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        const rr = await fetch("/api/resumes", { headers });
         if (rr.ok) {
           const list = await rr.json();
           if (Array.isArray(list)) setResumeFiles(list);
@@ -196,9 +194,8 @@ export default function Dashboard() {
         },
         body: JSON.stringify({ type, detail, progress }),
       });
-      // Refresh profile to fetch latest activities
       try {
-        const res = await fetch("/api/profile", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        const res = await fetch("/api/profile", { headers });
         if (res.ok) {
           const data = await res.json();
           if (Array.isArray(data?.activities)) setActivities(data.activities);
@@ -216,7 +213,6 @@ export default function Dashboard() {
           <h3 style={{ margin: "12px 0 4px" }}>{profile.name}</h3>
           <p style={{ margin: 0, color: "#9ca3af", fontSize: 13 }}>{profile.email}</p>
         </div>
-        
       </div>
 
       {/* Main */}
@@ -294,7 +290,7 @@ export default function Dashboard() {
               </div>
             }
           >
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {desiredRoles.map((r) => (
                 <span key={r} style={{ background: "#eef2ff", color: "#3730a3", padding: "6px 10px", borderRadius: 999 }}>
                   {r}

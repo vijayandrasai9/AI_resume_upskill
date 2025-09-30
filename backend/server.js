@@ -1,11 +1,20 @@
-require("dotenv").config();
+const path = require("path");
+require("dotenv").config({ path: path.join(__dirname, ".env") });
+
+// Validate required environment variables early
+const requiredEnvKeys = ["MONGO_URI", "JWT_SECRET", "JWT_EXPIRES_IN"];
+const missingEnvKeys = requiredEnvKeys.filter((key) => !process.env[key] || String(process.env[key]).trim() === "");
+if (missingEnvKeys.length > 0) {
+	console.error(`❌ Missing required environment variables: ${missingEnvKeys.join(", ")}`);
+	process.exit(1);
+}
+
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
 const authRoutes = require("./routes/auth");
 const userRoutes = require("./routes/user");
 const apiRoutes = require("./routes/api");
-const path = require("path");
 
 const app = express();
 app.use(cors());

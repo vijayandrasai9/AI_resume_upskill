@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const skillSchema = new mongoose.Schema({
   name: String,
@@ -9,7 +9,7 @@ const userSchema = new mongoose.Schema({
   name:      { type: String, required: true },
   email:     { type: String, required: true, unique: true },
   password:  { type: String, required: true },
-  theme:     { type: String, default: 'light' },
+  theme:     { type: String, default: "light" },
   roles:     [String],
   desiredRoles: [String],
   appliedRoles: [String],
@@ -37,4 +37,5 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-module.exports = mongoose.model('User', userSchema);
+// Export the model
+module.exports = mongoose.model("User", userSchema);
