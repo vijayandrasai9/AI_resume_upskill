@@ -4,7 +4,7 @@ export default function Dashboard() {
   const user = {
     name: "John Smith",
     profileCompletion: 75,
-    desiredRoles: ["Full Stack Developer", "Frontend Developer", "UI/UX Designer"],
+    desiredRoles: ["Full-Stack Developer", "Frontend Developer", "UI/UX Designer"],
   };
 
   return (
