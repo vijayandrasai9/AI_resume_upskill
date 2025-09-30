@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const skillSchema = new mongoose.Schema({
   name: String,
@@ -11,8 +11,25 @@ const userSchema = new mongoose.Schema({
   password:  { type: String, required: true },
   theme:     { type: String, default: 'light' },
   roles:     [String],
+  desiredRoles: [String],
+  appliedRoles: [String],
   skills:    [skillSchema],
   resumeUrl: String,
+  resumes: [
+    new mongoose.Schema({
+      name: String,
+      url: String,
+      uploadedAt: { type: Date, default: Date.now }
+    }, { _id: false })
+  ],
+  activities: [
+    new mongoose.Schema({
+      type: { type: String },
+      detail: { type: String },
+      progress: { type: Number, default: 0 },
+      createdAt: { type: Date, default: Date.now }
+    }, { _id: false })
+  ],
   stats: {
     projects:     { type: Number, default: 0 },
     rolesApplied: { type: Number, default: 0 },
@@ -20,4 +37,4 @@ const userSchema = new mongoose.Schema({
   }
 });
 
-export default mongoose.model('User', userSchema);
+module.exports = mongoose.model('User', userSchema);
