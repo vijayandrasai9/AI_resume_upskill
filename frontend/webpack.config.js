@@ -58,13 +58,13 @@ module.exports = {
     directory: path.resolve(__dirname, "dist"),
   },
   proxy: [
-    {
-      context: ["/api"], // match paths starting with /api
-      target: "http://localhost:3000", // your backend
-      changeOrigin: true,
-      secure: false,
-    },
-  ],
+  {
+    context: ["/api", "/uploads"], // proxy API and uploaded files to backend
+    target: "http://localhost:3000", // your backend
+    changeOrigin: true,
+    secure: false,
+  },
+],
 },
   mode: 'development'
 };

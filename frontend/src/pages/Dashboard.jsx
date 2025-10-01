@@ -48,6 +48,7 @@ export default function Dashboard() {
 
   const [recommendations, setRecommendations] = useState([]);
   const [projectGuides, setProjectGuides] = useState([]);
+  const [analysis, setAnalysis] = useState({ missingSkills: [], presentSkills: [], desiredRoles: [] });
 
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
@@ -92,6 +93,20 @@ export default function Dashboard() {
           if (res.ok) {
             const data = await res.json();
             if (Array.isArray(data)) setProjectGuides(data);
+          }
+        } catch {}
+
+        // Initial AI analysis (if a resume exists)
+        try {
+          const ar = await fetch("/api/analyze-resume", { headers });
+          if (ar.ok) {
+            const data = await ar.json();
+            setAnalysis({
+              missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
+              presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
+              desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
+              noResume: Boolean(data?.noResume)
+            });
           }
         } catch {}
       } catch {}
@@ -144,6 +159,20 @@ export default function Dashboard() {
           if (Array.isArray(list)) setResumeFiles(list);
         }
       } catch {}
+
+      // Trigger fresh AI analysis after successful upload
+      try {
+        const ar = await fetch("/api/analyze-resume", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (ar.ok) {
+          const data = await ar.json();
+          setAnalysis({
+            missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
+            presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
+            desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
+            noResume: Boolean(data?.noResume)
+          });
+        }
+      } catch {}
     } catch (err) {
       setUploadError(err?.message || "Upload failed");
     } finally {
@@ -162,6 +191,19 @@ export default function Dashboard() {
         },
         body: JSON.stringify({ desiredRoles: nextDesired, appliedRoles: nextApplied }),
       });
+      // Re-run analysis after roles change
+      try {
+        const ar = await fetch("/api/analyze-resume", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (ar.ok) {
+          const data = await ar.json();
+          setAnalysis({
+            missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
+            presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
+            desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
+            noResume: Boolean(data?.noResume)
+          });
+        }
+      } catch {}
     } catch {}
   }
 
@@ -315,6 +357,22 @@ export default function Dashboard() {
 
         {/* Guides & Recommendations */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+          <Section title="AI Skill Gap Analysis"
+            right={null}
+          >
+            {analysis.missingSkills.length === 0 ? (
+              <div style={{ color: "#6b7280" }}>No missing skills detected for your desired roles.</div>
+            ) : (
+              <div style={{ display: "grid", gap: 6 }}>
+                <div style={{ fontWeight: 600 }}>Missing skills for {analysis.desiredRoles.join(", ") || "your desired roles"}:</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {analysis.missingSkills.map((s) => (
+                    <span key={s} style={{ background: "#fef3c7", color: "#92400e", padding: "6px 10px", borderRadius: 999 }}>{s}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Section>
           <Section title="Project Guide">
             {projectGuides.length === 0 ? (
               <div style={{ color: "#6b7280" }}>Guides will appear here based on your skills and resumes.</div>

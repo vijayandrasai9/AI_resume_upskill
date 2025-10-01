@@ -18,9 +18,11 @@
     "express": "^4.19.2",
     "frontend": "file:../frontend",
     "jsonwebtoken": "^9.0.2",
+    "node-fetch": "^2.7.0",
     "mongoose": "^8.6.3",
     "multer": "^2.0.2",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "pdf-parse": "^1.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
