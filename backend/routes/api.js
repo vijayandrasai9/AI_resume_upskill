@@ -6,8 +6,9 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 *
 
 const { getProfile } = require("../controllers/profileController");
 const { listResumes, uploadResume, deleteResume } = require("../controllers/resumeController");
-const { getGuides, getRecommendations } = require("../controllers/contentController");
+const { getGuides, getRecommendations, getProjectRecommendations } = require("../controllers/contentController");
 const { analyzeLatestResume } = require("../controllers/aiController");
+const { chat } = require("../controllers/aiChatController");
 
 // Profile
 router.get("/profile", protect, getProfile);
@@ -20,9 +21,14 @@ router.delete("/resumes/:filename", protect, deleteResume);
 // Content
 router.get("/guides", protect, getGuides);
 router.get("/recommendations", protect, getRecommendations);
+router.get("/project-recommendations", protect, getProjectRecommendations);
 
 // AI: analyze latest uploaded resume for missing skills
 router.get("/analyze-resume", protect, analyzeLatestResume);
+
+// AI Chat (Gemini) — no auth required to allow public chatbot usage
+router.post("/ai/chat", chat);
+router.post("/chat", chat);
 
 module.exports = router;
 

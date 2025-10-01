@@ -33,3 +33,12 @@ connectDB();
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+// Simple health/info endpoint to verify Gemini key is loaded
+app.get("/api/health/ai", (_req, res) => {
+  const hasKey = Boolean(process.env.GEMINI_API_KEY && String(process.env.GEMINI_API_KEY).trim());
+  res.json({
+    geminiKeyLoaded: hasKey,
+    model: "gemini-1.5-pro-latest",
+  });
+});

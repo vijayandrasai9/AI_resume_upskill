@@ -111,6 +111,17 @@ exports.analyzeLatestResume = async (req, res) => {
     // Extract present skills from resume text
     const tokens = new Set([...extractTokens(text), ...externalTokens]);
 
+    // Extract present projects (very simple heuristic: lines containing keywords)
+    const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const projectKeywords = ["project", "built", "developed", "implemented", "created", "portfolio", "system", "application", "app"];
+    const presentProjects = Array.from(
+      new Set(
+        lines
+          .filter((l) => projectKeywords.some((k) => l.toLowerCase().includes(k)))
+          .slice(0, 20)
+      )
+    );
+
     // Determine target skills from desired roles
     const desiredRoles = Array.isArray(user.desiredRoles) ? user.desiredRoles : [];
     const requiredSkillSet = new Set();
@@ -154,6 +165,7 @@ exports.analyzeLatestResume = async (req, res) => {
       desiredRoles,
       presentSkills: Array.from(present).sort(),
       missingSkills: missing.sort(),
+      presentProjects,
     });
   } catch (err) {
     console.error(err);
