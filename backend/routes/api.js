@@ -5,7 +5,7 @@ const multer = require("multer");
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 8 * 1024 * 1024 } });
 
 const { getProfile } = require("../controllers/profileController");
-const { listResumes, uploadResume } = require("../controllers/resumeController");
+const { listResumes, uploadResume, deleteResume } = require("../controllers/resumeController");
 const { getGuides, getRecommendations } = require("../controllers/contentController");
 const { analyzeLatestResume } = require("../controllers/aiController");
 
@@ -15,6 +15,7 @@ router.get("/profile", protect, getProfile);
 // Resumes
 router.get("/resumes", protect, listResumes);
 router.post("/resumes", protect, upload.single("resume"), uploadResume);
+router.delete("/resumes/:filename", protect, deleteResume);
 
 // Content
 router.get("/guides", protect, getGuides);

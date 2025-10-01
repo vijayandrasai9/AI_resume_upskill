@@ -53,6 +53,21 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
 
+  async function refreshAnalysis(headers) {
+    try {
+      const ar = await fetch("/api/analyze-resume", { headers });
+      if (ar.ok) {
+        const data = await ar.json();
+        setAnalysis({
+          missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
+          presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
+          desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
+          noResume: Boolean(data?.noResume)
+        });
+      }
+    } catch {}
+  }
+
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const fetchAll = async () => {
@@ -98,16 +113,7 @@ export default function Dashboard() {
 
         // Initial AI analysis (if a resume exists)
         try {
-          const ar = await fetch("/api/analyze-resume", { headers });
-          if (ar.ok) {
-            const data = await ar.json();
-            setAnalysis({
-              missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
-              presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
-              desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
-              noResume: Boolean(data?.noResume)
-            });
-          }
+          await refreshAnalysis(headers);
         } catch {}
       } catch {}
     };
@@ -162,16 +168,7 @@ export default function Dashboard() {
 
       // Trigger fresh AI analysis after successful upload
       try {
-        const ar = await fetch("/api/analyze-resume", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        if (ar.ok) {
-          const data = await ar.json();
-          setAnalysis({
-            missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
-            presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
-            desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
-            noResume: Boolean(data?.noResume)
-          });
-        }
+        await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
       } catch {}
     } catch (err) {
       setUploadError(err?.message || "Upload failed");
@@ -193,18 +190,35 @@ export default function Dashboard() {
       });
       // Re-run analysis after roles change
       try {
-        const ar = await fetch("/api/analyze-resume", { headers: token ? { Authorization: `Bearer ${token}` } : {} });
-        if (ar.ok) {
-          const data = await ar.json();
-          setAnalysis({
-            missingSkills: Array.isArray(data?.missingSkills) ? data.missingSkills : [],
-            presentSkills: Array.isArray(data?.presentSkills) ? data.presentSkills : [],
-            desiredRoles: Array.isArray(data?.desiredRoles) ? data.desiredRoles : [],
-            noResume: Boolean(data?.noResume)
-          });
-        }
+        await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
       } catch {}
     } catch {}
+  }
+
+  async function handleDeleteResume(url) {
+    try {
+      const filename = String(url || "").split("/uploads/")[1];
+      if (!filename) return;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const res = await fetch(`/api/resumes/${encodeURIComponent(filename)}`, {
+        method: "DELETE",
+        headers,
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.message || "Delete failed");
+      // Refresh list
+      try {
+        const rr = await fetch("/api/resumes", { headers });
+        if (rr.ok) {
+          const list = await rr.json();
+          if (Array.isArray(list)) setResumeFiles(list);
+        }
+      } catch {}
+      // Refresh analysis
+      await refreshAnalysis(headers);
+    } catch (err) {
+      // Optionally surface error; keep quiet for now to match current UX
+    }
   }
 
   function addDesiredRole() {
@@ -293,14 +307,19 @@ export default function Dashboard() {
           ) : (
             <div style={{ display: "grid", gap: 10 }}>
               {resumeFiles.map((r, idx) => (
-                <div key={r._id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
+              <div key={r._id || idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
                   <div>
                     <div style={{ fontWeight: 600 }}>{r.name || r.filename || `Resume ${idx + 1}`}</div>
                     <div style={{ color: "#6b7280", fontSize: 12 }}>{new Date(r.uploadedAt || Date.now()).toLocaleString()}</div>
                   </div>
-                  {r.url ? (
-                    <a href={r.url} target="_blank" rel="noreferrer" style={{ color: "#2563eb" }}>View</a>
-                  ) : null}
+                  <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                    {r.url ? (
+                      <a href={r.url} target="_blank" rel="noreferrer" style={{ color: "#2563eb" }}>View</a>
+                    ) : null}
+                    {r.url ? (
+                      <button onClick={() => handleDeleteResume(r.url)} style={{ background: "#b91c1c", color: "#fff", border: 0, borderRadius: 8, padding: "6px 10px", cursor: "pointer" }}>Delete</button>
+                    ) : null}
+                  </div>
                 </div>
               ))}
             </div>

@@ -46,4 +46,43 @@ exports.uploadResume = async (req, res) => {
   }
 };
 
+exports.deleteResume = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized" });
+
+    const filename = String(req.params.filename || "").trim();
+    if (!filename) return res.status(400).json({ message: "Filename is required" });
+
+    // Remove resume entry from the user's document
+    const user = await User.findById(userId).select("resumes");
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const before = Array.isArray(user.resumes) ? user.resumes.length : 0;
+    user.resumes = (user.resumes || []).filter((r) => {
+      const url = String(r?.url || "");
+      const f = url.split("/uploads/")[1];
+      return f !== filename;
+    });
+
+    const after = user.resumes.length;
+    if (after === before) {
+      return res.status(404).json({ message: "Resume not found for user" });
+    }
+
+    await user.save();
+
+    // Delete the file from disk if it exists
+    const filePath = path.join(__dirname, "..", "uploads", filename);
+    try {
+      if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    } catch {}
+
+    return res.json({ message: "Deleted" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 

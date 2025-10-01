@@ -33,6 +33,18 @@ const ROLE_SKILL_MAP = {
     "html",
     "css",
   ],
+  // Alias: treat generic "software developer" similar to full-stack for broader coverage
+  "software developer": [
+    "javascript",
+    "react",
+    "node",
+    "express",
+    "mongodb",
+    "html",
+    "css",
+    "testing",
+    "git"
+  ],
 };
 
 function normalize(text) {
@@ -121,12 +133,16 @@ exports.analyzeLatestResume = async (req, res) => {
       ].forEach((s) => requiredSkillSet.add(s));
     }
 
-    // Heuristic presence check: token includes required skill as substring
+    // Heuristic presence check: mark as present only if found in resume text/tokens
     const present = new Set();
     for (const reqSkill of requiredSkillSet) {
-      const needle = reqSkill.toLowerCase().replace(/[.+#]/g, (m) => `\\${m}`);
-      const wordRe = new RegExp(`(^|\\s)${needle}(\\s|$)`);
-      if (wordRe.test(normalize(reqSkill)) || wordRe.test(normalizedText)) {
+      const lower = reqSkill.toLowerCase();
+      // Quick token check for exact match (e.g., "react", "node")
+      const inTokens = tokens.has(lower);
+      // Word-boundary check within normalized resume text (special chars escaped)
+      const escaped = lower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
+      if (inTokens || boundaryRe.test(normalizedText)) {
         present.add(reqSkill);
       }
     }
