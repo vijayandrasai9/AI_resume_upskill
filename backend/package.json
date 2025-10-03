@@ -12,17 +12,19 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "frontend": "file:../frontend",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^2.7.0",
     "mongoose": "^8.6.3",
     "multer": "^2.0.2",
-    "uuid": "^9.0.1",
-    "pdf-parse": "^1.1.1"
+    "node-fetch": "^2.7.0",
+    "openai": "^6.1.0",
+    "pdf-parse": "^1.1.1",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"

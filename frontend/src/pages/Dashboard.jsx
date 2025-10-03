@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-
+import ChatBox from "./components/chatBox";
 function Section({ title, right, children }) {
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: 12, padding: 20, marginBottom: 20 }}>
@@ -40,10 +40,6 @@ export default function Dashboard() {
   const [filteredTodos, setFilteredTodos] = useState([]);
   const [analysis, setAnalysis] = useState({ missingSkills: [], presentSkills: [], desiredRoles: [], noResume: false, presentProjects: [] });
   const [selectedAppliedRole, setSelectedAppliedRole] = useState("");
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState("");
-  const [chatTyping, setChatTyping] = useState(false);
 
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
@@ -134,7 +130,7 @@ export default function Dashboard() {
   }, [token]);
 
   useEffect(() => {
-    // Filter project TODOs to those matching the selected role (if any), whose requiredSkills are missing, and exclude ones already present in resume projects
+    // Filter project TODOs
     const present = new Set((analysis?.presentSkills || []).map((s) => String(s).toLowerCase()));
     const presentProjects = (analysis?.presentProjects || []).map((p) => String(p).toLowerCase());
     const result = (projectTodos || [])
@@ -155,8 +151,6 @@ export default function Dashboard() {
       });
     setFilteredTodos(result);
   }, [projectTodos, analysis, selectedAppliedRole]);
-
-  // Replace chart with resume-detected skills in UI
 
   async function handleUploadResume(e) {
     const file = e.target.files?.[0];
@@ -185,10 +179,7 @@ export default function Dashboard() {
         }
       } catch {}
 
-      // Trigger fresh AI analysis after successful upload
-      try {
-        await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
-      } catch {}
+      await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
     } catch (err) {
       setUploadError(err?.message || "Upload failed");
     } finally {
@@ -207,10 +198,7 @@ export default function Dashboard() {
         },
         body: JSON.stringify({ desiredRoles: nextDesired, appliedRoles: nextApplied }),
       });
-      // Re-run analysis after roles change
-      try {
-        await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
-      } catch {}
+      await refreshAnalysis(token ? { Authorization: `Bearer ${token}` } : {});
     } catch {}
   }
 
@@ -233,11 +221,8 @@ export default function Dashboard() {
           if (Array.isArray(list)) setResumeFiles(list);
         }
       } catch {}
-      // Refresh analysis
       await refreshAnalysis(headers);
-    } catch (err) {
-      // Optionally surface error; keep quiet for now to match current UX
-    }
+    } catch {}
   }
 
   function addDesiredRole() {
@@ -256,7 +241,6 @@ export default function Dashboard() {
     const nextApplied = Array.from(new Set([role, ...appliedRoles]));
     setAppliedRoles(nextApplied);
     setSelectedAppliedRole(role);
-    // Persist roles first, then refresh analysis (which also refreshes project todos)
     (async () => {
       try {
         await persistRoles(desiredRoles, nextApplied);
@@ -299,82 +283,6 @@ export default function Dashboard() {
         }
       } catch {}
     } catch {}
-  }
-
-  function buildAssistantReply(userText) {
-    const role = selectedAppliedRole || (Array.isArray(appliedRoles) && appliedRoles[0]) || "(none)";
-    const present = Array.isArray(analysis?.presentSkills) ? analysis.presentSkills : [];
-    const missing = Array.isArray(analysis?.missingSkills) ? analysis.missingSkills : [];
-    const todos = Array.isArray(filteredTodos) ? filteredTodos : [];
-
-    const topTodos = todos.slice(0, 3);
-    const todoLines = topTodos.map((t, idx) => {
-      const res = Array.isArray(t.resources) && t.resources.length > 0 ? `  - Resource: ${t.resources[0].title || t.resources[0].type} -> ${t.resources[0].url}` : null;
-      return [`${idx + 1}. ${t.title}`, res].filter(Boolean).join("\n");
-    });
-
-    const plan = missing.slice(0, 5).map((s, i) => `${i + 1}. Study ${s} and practice with a mini-task`).join("\n");
-
-    const reply = [
-      `Role: ${role}`,
-      present.length ? `Detected skills: ${present.join(", ")}` : `Detected skills: (none)` ,
-      missing.length ? `Gaps to focus: ${missing.join(", ")}` : `No critical gaps detected based on your resume.`,
-      "",
-      "Projects to do next (not covered by your resume):",
-      todoLines.length ? todoLines.join("\n") : "No role-specific gaps found. Consider enhancing depth in an existing area.",
-      "",
-      plan ? `Quick learning plan based on gaps:\n${plan}` : "You're in great shape. Pick a project and start building!",
-      "",
-      `You asked: ${userText}`,
-    ].join("\n");
-
-    return reply;
-  }
-
-  async function sendChatToBackend(userText) {
-    try {
-      setChatTyping(true);
-      const headers = {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
-      const body = {
-        message: userText,
-        appliedRole: selectedAppliedRole || (appliedRoles?.[0] || ""),
-        presentSkills: analysis?.presentSkills || [],
-        missingSkills: analysis?.missingSkills || [],
-        presentProjects: analysis?.presentProjects || [],
-        history: (chatMessages || []).slice(-10).map((m) => ({ role: m.role, text: m.text })),
-      };
-      const resp = await fetch("/api/chat", { method: "POST", headers, body: JSON.stringify(body) });
-      let data = null;
-      try {
-        data = await resp.json();
-      } catch {}
-      if (!resp.ok) {
-        const msg = (data && (data.message || data.error)) || `Chat service error (${resp.status})`;
-        setChatMessages((msgs) => [...msgs, { role: "assistant", text: `Sorry, I couldn't process that: ${msg}` }]);
-        return;
-      }
-      const reply = data?.reply || buildAssistantReply(userText);
-      setChatMessages((msgs) => [...msgs, { role: "assistant", text: reply }]);
-      if (Array.isArray(data?.projects) && data.projects.length > 0) {
-        setProjectTodos((prev) => {
-          const byTitle = new Map((prev || []).map((p) => [String(p.title).toLowerCase(), p]));
-          for (const p of data.projects) {
-            const key = String(p.title).toLowerCase();
-            if (!byTitle.has(key)) byTitle.set(key, p);
-          }
-          return Array.from(byTitle.values());
-        });
-      }
-      await refreshAnalysis(headers);
-    } catch (e) {
-      const fallback = `Sorry, I hit an error: ${e?.message || "Unknown error"}`;
-      setChatMessages((msgs) => [...msgs, { role: "assistant", text: fallback }]);
-    } finally {
-      setChatTyping(false);
-    }
   }
 
   return (
@@ -558,7 +466,7 @@ export default function Dashboard() {
           </Section>
         </div>
 
-        {/* Project Guide (below AI Skill Gap), then Recommendations */}
+        {/* Project Guide */}
         <Section title="Project Guide">
           {Array.isArray(projectGuides) && projectGuides.length > 0 ? (
             <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -578,6 +486,7 @@ export default function Dashboard() {
           )}
         </Section>
 
+        {/* Recommendations */}
         <Section title="Recommendations">
           {recommendations.length === 0 ? (
             <div style={{ color: "#6b7280" }}>Recommendations will appear here based on your desired roles.</div>
@@ -595,113 +504,12 @@ export default function Dashboard() {
             </div>
           )}
         </Section>
+        <Section title="AI Chatbot">
+
+        <ChatBox />
+        </Section>
+
       </div>
-
-      {/* Chatbot toggle button */}
-      <button
-        onClick={() => setIsChatOpen((v) => !v)}
-        style={{
-          position: "fixed",
-          right: 24,
-          bottom: 24,
-          background: "linear-gradient(135deg, #111827, #1f2937)",
-          color: "#fff",
-          border: 0,
-          borderRadius: 999,
-          padding: "14px 18px",
-          cursor: "pointer",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.25)",
-          zIndex: 50,
-        }}
-        aria-label="Toggle Chatbot"
-        title="Chatbot"
-      >
-        {isChatOpen ? "Close Chat" : "Chat with AI"}
-      </button>
-
-      {/* Chatbot panel */}
-      {isChatOpen && (
-        <div
-          style={{
-            position: "fixed",
-            right: 24,
-            bottom: 86,
-            width: 460,
-            maxHeight: 680,
-            display: "flex",
-            flexDirection: "column",
-            background: "#ffffff",
-            border: "1px solid #e5e7eb",
-            borderRadius: 16,
-            boxShadow: "0 16px 40px rgba(0,0,0,0.18)",
-            overflow: "hidden",
-            zIndex: 60,
-          }}
-        >
-          <div style={{ padding: 14, background: "linear-gradient(180deg, #111827, #1f2937)", color: "#fff", fontWeight: 600 }}>AI Project Assistant</div>
-          <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 10, overflowY: "auto" }}>
-            {chatMessages.length === 0 ? (
-              <div style={{ color: "#6b7280", fontSize: 13 }}>
-                Ask for help scoping a project. Applied role: {selectedAppliedRole || "(none)"}. I'll use your resume analysis to tailor suggestions.
-              </div>
-            ) : (
-              chatMessages.map((m, i) => (
-                <div key={i} style={{ alignSelf: m.role === "user" ? "flex-end" : "flex-start", maxWidth: "92%", display: "flex", gap: 8 }}>
-                  <div
-                    style={{
-                      background: m.role === "user" ? "#111827" : "#f3f4f6",
-                      color: m.role === "user" ? "#fff" : "#111827",
-                      borderRadius: 12,
-                      padding: "10px 12px",
-                      fontSize: 14,
-                      whiteSpace: "pre-wrap",
-                      lineHeight: 1.45,
-                      boxShadow: m.role === "user" ? "0 4px 12px rgba(17,24,39,0.25)" : "none",
-                    }}
-                  >
-                    {m.text}
-                  </div>
-                </div>
-              ))
-            )}
-            {chatTyping && (
-              <div style={{ alignSelf: "flex-start", opacity: 0.8, fontSize: 12, color: "#6b7280" }}>AI is typing…</div>
-            )}
-          </div>
-          <div style={{ padding: 14, borderTop: "1px solid #e5e7eb", display: "flex", gap: 10, background: "#fafafa" }}>
-            <input
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              placeholder="Ask about a project..."
-              style={{ flex: 1, border: "1px solid #d1d5db", borderRadius: 10, padding: "10px 12px", background: "#fff" }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  if (!chatInput.trim()) return;
-                  const userText = chatInput.trim();
-                  setChatMessages((msgs) => [...msgs, { role: "user", text: userText }]);
-                  setChatInput("");
-                  // Inline assistant reply via backend
-                  sendChatToBackend(userText);
-                }
-              }}
-            />
-            <button
-              onClick={() => {
-                if (!chatInput.trim()) return;
-                const userText = chatInput.trim();
-                setChatMessages((msgs) => [...msgs, { role: "user", text: userText }]);
-                setChatInput("");
-                // Try backend; fallback to local reply handled inside
-                sendChatToBackend(userText);
-              }}
-              style={{ background: "#111827", color: "#fff", border: 0, borderRadius: 10, padding: "10px 14px", cursor: "pointer", boxShadow: "0 6px 16px rgba(17,24,39,0.3)" }}
-            >
-              Send
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

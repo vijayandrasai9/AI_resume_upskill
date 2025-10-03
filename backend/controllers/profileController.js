@@ -12,7 +12,7 @@ exports.getProfile = async (req, res) => {
     return res.json({
       name: user.name,
       email: user.email,
-      theme: user.theme,
+      
       skills: user.skills || [],
       desiredRoles,
       appliedRoles,

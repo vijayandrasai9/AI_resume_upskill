@@ -9,7 +9,6 @@ const userSchema = new mongoose.Schema({
   name:      { type: String, required: true },
   email:     { type: String, required: true, unique: true },
   password:  { type: String, required: true },
-  theme:     { type: String, default: "light" },
   roles:     [String],
   desiredRoles: [String],
   appliedRoles: [String],

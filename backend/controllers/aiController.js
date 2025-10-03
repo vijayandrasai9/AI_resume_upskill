@@ -45,6 +45,669 @@ const ROLE_SKILL_MAP = {
     "testing",
     "git"
   ],
+  
+  "Frontend Developer": [
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "React",
+    "Webpack"
+  ],
+  "Backend Developer": [
+    "Node.js",
+    "Express",
+    "MongoDB",
+    "SQL",
+    "JWT"
+  ],
+  "Full Stack Developer": [
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "React",
+    "Node.js",
+    "Express",
+    "MongoDB"
+  ],
+  "Mobile App Developer": [
+    "Java",
+    "Kotlin",
+    "Swift",
+    "React Native",
+    "Flutter"
+  ],
+  "DevOps Engineer": [
+    "Docker",
+    "Kubernetes",
+    "Jenkins",
+    "AWS",
+    "Terraform"
+  ],
+  "Cloud Engineer": [
+    "AWS",
+    "Azure",
+    "Google Cloud",
+    "Kubernetes",
+    "CI/CD"
+  ],
+  "Data Scientist": [
+    "Python",
+    "R",
+    "Pandas",
+    "NumPy",
+    "Machine Learning",
+    "TensorFlow"
+  ],
+  "Machine Learning Engineer": [
+    "Python",
+    "TensorFlow",
+    "PyTorch",
+    "Scikit-learn",
+    "Deep Learning"
+  ],
+  "AI Engineer": [
+    "Python",
+    "NLP",
+    "Computer Vision",
+    "Deep Learning",
+    "TensorFlow"
+  ],
+  "Cybersecurity Engineer": [
+    "Network Security",
+    "Firewalls",
+    "Penetration Testing",
+    "SIEM",
+    "Ethical Hacking"
+  ],
+  "Database Administrator": [
+    "SQL",
+    "MySQL",
+    "PostgreSQL",
+    "MongoDB",
+    "Database Tuning"
+  ],
+  "UI/UX Designer": [
+    "Figma",
+    "Adobe XD",
+    "Sketch",
+    "Wireframing",
+    "Prototyping"
+  ],
+  "Game Developer": [
+    "Unity",
+    "Unreal Engine",
+    "C#",
+    "C++",
+    "3D Modeling"
+  ],
+  "Blockchain Developer": [
+    "Solidity",
+    "Ethereum",
+    "Smart Contracts",
+    "Web3.js",
+    "Cryptography"
+  ],
+  "Big Data Engineer": [
+    "Hadoop",
+    "Spark",
+    "Kafka",
+    "Scala",
+    "Hive"
+  ],
+  "Data Engineer": [
+    "Python",
+    "ETL",
+    "SQL",
+    "Airflow",
+    "Spark"
+  ],
+  "AR/VR Developer": [
+    "Unity",
+    "Unreal Engine",
+    "C#",
+    "3D Modeling",
+    "Oculus SDK"
+  ],
+  "Embedded Systems Engineer": [
+    "C",
+    "C++",
+    "Microcontrollers",
+    "RTOS",
+    "IoT"
+  ],
+  "IoT Developer": [
+    "Python",
+    "C",
+    "Arduino",
+    "Raspberry Pi",
+    "MQTT"
+  ],
+  "Software Engineer": [
+    "Java",
+    "C++",
+    "Python",
+    "Software Design Patterns",
+    "Git"
+  ],
+  "Web Developer": [
+    "HTML",
+    "CSS",
+    "JavaScript",
+    "PHP",
+    "SQL"
+  ],
+  "PHP Developer": [
+    "PHP",
+    "Laravel",
+    "MySQL",
+    "JavaScript",
+    "jQuery"
+  ],
+  "Java Developer": [
+    "Java",
+    "Spring Boot",
+    "Hibernate",
+    "Maven",
+    "REST APIs"
+  ],
+  "Python Developer": [
+    "Python",
+    "Flask",
+    "Django",
+    "Pandas",
+    "SQLAlchemy"
+  ],
+  "C++ Developer": [
+    "C++",
+    "STL",
+    "Multithreading",
+    "Design Patterns",
+    "Boost"
+  ],
+  "C# Developer": [
+    "C#",
+    ".NET Core",
+    "ASP.NET",
+    "Entity Framework",
+    "LINQ"
+  ],
+  "Go Developer": [
+    "Go",
+    "gRPC",
+    "Docker",
+    "Microservices",
+    "PostgreSQL"
+  ],
+  "Rust Developer": [
+    "Rust",
+    "Concurrency",
+    "Memory Management",
+    "Cargo",
+    "WebAssembly"
+  ],
+  "Kotlin Developer": [
+    "Kotlin",
+    "Android Studio",
+    "Coroutines",
+    "MVVM",
+    "Jetpack Compose"
+  ],
+  "Swift Developer": [
+    "Swift",
+    "Xcode",
+    "iOS SDK",
+    "UIKit",
+    "Core Data"
+  ],
+  "RPA Developer": [
+    "UiPath",
+    "Automation Anywhere",
+    "Blue Prism",
+    "Python",
+    "Excel Macros"
+  ],
+  "QA Engineer": [
+    "Selenium",
+    "JUnit",
+    "TestNG",
+    "Postman",
+    "Cucumber"
+  ],
+  "Automation Test Engineer": [
+    "Selenium",
+    "Appium",
+    "Robot Framework",
+    "CI/CD",
+    "Python"
+  ],
+  "Performance Test Engineer": [
+    "JMeter",
+    "LoadRunner",
+    "Gatling",
+    "Monitoring Tools",
+    "CI/CD"
+  ],
+  "Penetration Tester": [
+    "Kali Linux",
+    "Metasploit",
+    "Burp Suite",
+    "Wireshark",
+    "Nmap"
+  ],
+  "Network Engineer": [
+    "Cisco",
+    "Switching",
+    "Routing",
+    "Firewalls",
+    "VPN"
+  ],
+  "Systems Engineer": [
+    "Linux",
+    "Windows Server",
+    "Shell Scripting",
+    "Active Directory",
+    "Networking"
+  ],
+  "Site Reliability Engineer": [
+    "Python",
+    "Kubernetes",
+    "Monitoring",
+    "Cloud",
+    "CI/CD"
+  ],
+  "Solutions Architect": [
+    "AWS",
+    "Azure",
+    "Microservices",
+    "API Design",
+    "Cloud Security"
+  ],
+  "Enterprise Architect": [
+    "TOGAF",
+    "Cloud Platforms",
+    "Integration",
+    "DevOps",
+    "Business Analysis"
+  ],
+  "Product Manager": [
+    "Agile",
+    "Scrum",
+    "Roadmapping",
+    "Wireframing",
+    "Market Research"
+  ],
+  "Project Manager": [
+    "Agile",
+    "Scrum",
+    "Kanban",
+    "MS Project",
+    "Risk Management"
+  ],
+  "Scrum Master": [
+    "Agile",
+    "Scrum",
+    "Kanban",
+    "Facilitation",
+    "JIRA"
+  ],
+  "Business Analyst": [
+    "Requirement Gathering",
+    "SQL",
+    "Process Modelling",
+    "UML",
+    "Agile"
+  ],
+  "ERP Consultant": [
+    "SAP",
+    "Oracle ERP",
+    "Business Process",
+    "SQL",
+    "Integration"
+  ],
+  "CRM Developer": [
+    "Salesforce",
+    "Apex",
+    "Visualforce",
+    "JavaScript",
+    "SQL"
+  ],
+  "Salesforce Developer": [
+    "Apex",
+    "Visualforce",
+    "Lightning Web Components",
+    "Salesforce APIs",
+    "SOQL"
+  ],
+  "ServiceNow Developer": [
+    "JavaScript",
+    "Glide API",
+    "Workflows",
+    "ITSM",
+    "Integration"
+  ],
+  "ETL Developer": [
+    "Informatica",
+    "Talend",
+    "SQL",
+    "Python",
+    "Data Warehousing"
+  ],
+  "Data Analyst": [
+    "Excel",
+    "SQL",
+    "Python",
+    "Power BI",
+    "Tableau"
+  ],
+  "BI Developer": [
+    "Power BI",
+    "Tableau",
+    "SQL",
+    "DAX",
+    "ETL"
+  ],
+  "Data Architect": [
+    "SQL",
+    "NoSQL",
+    "Data Modelling",
+    "Cloud Databases",
+    "Big Data"
+  ],
+  "Computer Vision Engineer": [
+    "Python",
+    "OpenCV",
+    "TensorFlow",
+    "Deep Learning",
+    "PyTorch"
+  ],
+  "NLP Engineer": [
+    "Python",
+    "NLTK",
+    "SpaCy",
+    "Transformers",
+    "TensorFlow"
+  ],
+  "Robotics Engineer": [
+    "ROS",
+    "Python",
+    "C++",
+    "Embedded Systems",
+    "Computer Vision"
+  ],
+  "Control Systems Engineer": [
+    "MATLAB",
+    "Simulink",
+    "C",
+    "Automation",
+    "PLC"
+  ],
+  "Game Designer": [
+    "Game Mechanics",
+    "Level Design",
+    "Unity",
+    "Unreal",
+    "Storytelling"
+  ],
+  "3D Animator": [
+    "Blender",
+    "Maya",
+    "3ds Max",
+    "Rigging",
+    "Rendering"
+  ],
+  "Graphic Designer": [
+    "Photoshop",
+    "Illustrator",
+    "InDesign",
+    "Figma",
+    "Canva"
+  ],
+  "Content Strategist": [
+    "SEO",
+    "Content Writing",
+    "Analytics",
+    "WordPress",
+    "Social Media"
+  ],
+  "SEO Specialist": [
+    "SEO",
+    "Google Analytics",
+    "Keyword Research",
+    "On-Page SEO",
+    "Backlinks"
+  ],
+  "Digital Marketing Specialist": [
+    "Google Ads",
+    "Facebook Ads",
+    "SEO",
+    "Analytics",
+    "Email Marketing"
+  ],
+  "Cloud Security Engineer": [
+    "AWS Security",
+    "IAM",
+    "Encryption",
+    "Firewalls",
+    "SIEM"
+  ],
+  "Information Security Analyst": [
+    "Threat Detection",
+    "Incident Response",
+    "SIEM",
+    "Malware Analysis",
+    "Risk Assessment"
+  ],
+  "Compliance Analyst": [
+    "GDPR",
+    "HIPAA",
+    "ISO 27001",
+    "Risk Management",
+    "Auditing"
+  ],
+  "IT Support Specialist": [
+    "Windows",
+    "Linux",
+    "Networking",
+    "Troubleshooting",
+    "Customer Support"
+  ],
+  "Help Desk Technician": [
+    "Windows",
+    "Linux",
+    "Active Directory",
+    "Troubleshooting",
+    "Ticketing Systems"
+  ],
+  "Systems Administrator": [
+    "Windows Server",
+    "Linux",
+    "VMware",
+    "Shell Scripting",
+    "Networking"
+  ],
+  "Release Manager": [
+    "CI/CD",
+    "Jenkins",
+    "Git",
+    "Version Control",
+    "Release Planning"
+  ],
+  "Build Engineer": [
+    "CI/CD",
+    "Jenkins",
+    "Maven",
+    "Gradle",
+    "Docker"
+  ],
+  "Integration Engineer": [
+    "API Integration",
+    "Microservices",
+    "REST",
+    "SOAP",
+    "Middleware"
+  ],
+  "Middleware Engineer": [
+    "WebLogic",
+    "JBoss",
+    "Kafka",
+    "RabbitMQ",
+    "Integration"
+  ],
+  "Storage Engineer": [
+    "SAN",
+    "NAS",
+    "VMware",
+    "Backup Tools",
+    "Cloud Storage"
+  ],
+  "Linux Administrator": [
+    "Linux",
+    "Bash",
+    "Networking",
+    "Shell Scripting",
+    "Firewall"
+  ],
+  "Windows Administrator": [
+    "Windows Server",
+    "PowerShell",
+    "Active Directory",
+    "IIS",
+    "Exchange Server"
+  ],
+  "SAP Consultant": [
+    "SAP ABAP",
+    "SAP HANA",
+    "SAP FICO",
+    "SAP MM",
+    "SQL"
+  ],
+  "Oracle DBA": [
+    "Oracle DB",
+    "PL/SQL",
+    "Backup & Recovery",
+    "Performance Tuning",
+    "RAC"
+  ],
+  "Hadoop Developer": [
+    "Hadoop",
+    "MapReduce",
+    "Hive",
+    "Pig",
+    "HDFS"
+  ],
+  "Spark Developer": [
+    "Apache Spark",
+    "Scala",
+    "Python",
+    "Kafka",
+    "HDFS"
+  ],
+  "Kafka Developer": [
+    "Apache Kafka",
+    "Java",
+    "Zookeeper",
+    "Streams API",
+    "Microservices"
+  ],
+  "Power BI Developer": [
+    "Power BI",
+    "DAX",
+    "SQL",
+    "Data Modeling",
+    "ETL"
+  ],
+  "Tableau Developer": [
+    "Tableau",
+    "SQL",
+    "Data Visualization",
+    "ETL",
+    "Analytics"
+  ],
+  "Mobile Game Developer": [
+    "Unity",
+    "C#",
+    "Java",
+    "Android",
+    "iOS"
+  ],
+  "VR Game Developer": [
+    "Unity",
+    "C#",
+    "Oculus SDK",
+    "Unreal Engine",
+    "3D Modeling"
+  ],
+  "E-commerce Developer": [
+    "Shopify",
+    "Magento",
+    "WooCommerce",
+    "JavaScript",
+    "SQL"
+  ],
+  "WordPress Developer": [
+    "PHP",
+    "WordPress",
+    "MySQL",
+    "HTML",
+    "CSS"
+  ],
+  "Drupal Developer": [
+    "PHP",
+    "Drupal",
+    "MySQL",
+    "JavaScript",
+    "Twig"
+  ],
+  "Joomla Developer": [
+    "PHP",
+    "Joomla",
+    "MySQL",
+    "HTML",
+    "CSS"
+  ],
+  "Automation Engineer": [
+    "Python",
+    "Selenium",
+    "Bash",
+    "CI/CD",
+    "Docker"
+  ],
+  "AI Research Scientist": [
+    "Deep Learning",
+    "NLP",
+    "Computer Vision",
+    "Reinforcement Learning",
+    "Python"
+  ],
+  "Quantitative Analyst": [
+    "Python",
+    "R",
+    "Mathematics",
+    "Statistics",
+    "Machine Learning"
+  ],
+  "Financial Software Developer": [
+    "Java",
+    "C#",
+    "Python",
+    "SQL",
+    "Financial Modelling"
+  ],
+  "Health Informatics Specialist": [
+    "HL7",
+    "FHIR",
+    "SQL",
+    "Data Analytics",
+    "Python"
+  ],
+  "Bioinformatics Engineer": [
+    "Python",
+    "R",
+    "Biostatistics",
+    "Genomics",
+    "Data Visualization"
+  ]
+
 };
 
 function normalize(text) {
