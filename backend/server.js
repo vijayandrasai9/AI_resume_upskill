@@ -8,12 +8,12 @@ const connectDB   = require("./config/db");
 const authRoutes  = require("./routes/auth");
 const userRoutes  = require("./routes/user");
 const apiRoutes   = require("./routes/api");
-const chatRouter  = require("./routes/chat");
+// const chatRouter  = require("./routes/chat");
 
 const app = express();
 
 // Early validation of required env keys
-const requiredEnvKeys = ["MONGO_URI", "JWT_SECRET", "JWT_EXPIRES_IN", "GEMINI_API_KEY"];
+const requiredEnvKeys = ["MONGO_URI", "JWT_SECRET", "JWT_EXPIRES_IN"];
 const missingEnvKeys  = requiredEnvKeys.filter(key => !process.env[key] || !process.env[key].trim());
 if (missingEnvKeys.length) {
   console.error(`❌ Missing env vars: ${missingEnvKeys.join(", ")}`);
@@ -38,7 +38,7 @@ app.get("/api/health/ai", (_, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api", apiRoutes);
-app.use("/api", chatRouter);
+// Legacy Gemini chat router removed; using /api/chat from api.js instead
 
 // Database + Server start
 connectDB();

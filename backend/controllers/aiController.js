@@ -787,36 +787,70 @@ exports.analyzeLatestResume = async (req, res) => {
 
     // Determine target skills from desired roles
     const desiredRoles = Array.isArray(user.desiredRoles) ? user.desiredRoles : [];
+
+    // If no desired roles are provided, do not compute a gap. Return only detected present skills.
+    if (!desiredRoles || desiredRoles.length === 0) {
+      // Build a union of all known skills from ROLE_SKILL_MAP to filter tokens
+      const knownSkills = new Set();
+      Object.values(ROLE_SKILL_MAP).forEach((arr) => {
+        (arr || []).forEach((s) => knownSkills.add(String(s).toLowerCase()));
+      });
+
+      const present = new Set();
+      for (const skill of knownSkills) {
+        const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
+        if (tokens.has(skill) || boundaryRe.test(normalizedText)) {
+          present.add(skill);
+        }
+      }
+
+      return res.json({
+        resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
+        desiredRoles,
+        presentSkills: Array.from(present).sort(),
+        missingSkills: [],
+        presentProjects,
+      });
+    }
+
     const requiredSkillSet = new Set();
     desiredRoles.forEach((role) => {
-      const key = String(role || "").toLowerCase().trim();
-      const skills = ROLE_SKILL_MAP[key] || [];
+      const roleStr = String(role || "").toLowerCase().trim();
+      // Try exact match first, then partial matches
+      let skills = ROLE_SKILL_MAP[roleStr] || [];
+      if (skills.length === 0) {
+        // Try partial matching for roles like "Frontend Developer" -> "frontend developer"
+        for (const [key, value] of Object.entries(ROLE_SKILL_MAP)) {
+          if (key.includes(roleStr) || roleStr.includes(key)) {
+            skills = value;
+            break;
+          }
+        }
+      }
       skills.forEach((s) => requiredSkillSet.add(s));
     });
 
-    // If no desired roles, default to a general set
-    if (requiredSkillSet.size === 0) {
-      [
-        "javascript",
-        "react",
-        "node",
-        "express",
-        "mongodb",
-        "html",
-        "css",
-      ].forEach((s) => requiredSkillSet.add(s));
+    // First, detect ALL skills from resume (not just required ones)
+    const allKnownSkills = new Set();
+    Object.values(ROLE_SKILL_MAP).forEach((arr) => {
+      (arr || []).forEach((s) => allKnownSkills.add(String(s).toLowerCase()));
+    });
+
+    const allPresentSkills = new Set();
+    for (const skill of allKnownSkills) {
+      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
+      if (tokens.has(skill) || boundaryRe.test(normalizedText)) {
+        allPresentSkills.add(skill);
+      }
     }
 
-    // Heuristic presence check: mark as present only if found in resume text/tokens
+    // Then check which required skills are present
     const present = new Set();
     for (const reqSkill of requiredSkillSet) {
       const lower = reqSkill.toLowerCase();
-      // Quick token check for exact match (e.g., "react", "node")
-      const inTokens = tokens.has(lower);
-      // Word-boundary check within normalized resume text (special chars escaped)
-      const escaped = lower.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
-      if (inTokens || boundaryRe.test(normalizedText)) {
+      if (allPresentSkills.has(lower)) {
         present.add(reqSkill);
       }
     }
@@ -826,7 +860,6 @@ exports.analyzeLatestResume = async (req, res) => {
     return res.json({
       resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
       desiredRoles,
-      presentSkills: Array.from(present).sort(),
       missingSkills: missing.sort(),
       presentProjects,
     });

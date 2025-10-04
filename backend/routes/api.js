@@ -25,7 +25,9 @@ router.get("/project-recommendations", protect, getProjectRecommendations);
 // AI: analyze latest uploaded resume for missing skills
 router.get("/analyze-resume", protect, analyzeLatestResume);
 
-// AI Chat (Gemini) — no auth required to allow public chatbot usage
+// AI Chat — no auth required to allow public chatbot usage
+const aiChatController = require("../controllers/aiChatController");
+router.post("/chat", aiChatController.chat);
 
 module.exports = router;
 
