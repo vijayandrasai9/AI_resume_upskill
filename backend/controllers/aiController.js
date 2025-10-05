@@ -710,6 +710,9 @@ const ROLE_SKILL_MAP = {
 
 };
 
+// Export the ROLE_SKILL_MAP
+exports.ROLE_SKILL_MAP = ROLE_SKILL_MAP;
+
 function normalize(text) {
   return String(text || "")
     .toLowerCase()
@@ -736,7 +739,11 @@ exports.analyzeLatestResume = async (req, res) => {
     const user = await User.findById(userId).select("resumes desiredRoles");
     if (!user) return res.status(404).json({ message: "User not found" });
     if (!Array.isArray(user.resumes) || user.resumes.length === 0) {
-      return res.status(200).json({ message: "No resumes uploaded", missingSkills: [], presentSkills: [], desiredRoles: user.desiredRoles || [], noResume: true });
+      // Clear stored skills when no resume is present
+      await User.findByIdAndUpdate(userId, { 
+        resumeDetectedSkills: [] 
+      });
+      return res.status(200).json({ message: "No resumes uploaded", missingSkills: [], presentSkills: [], desiredRoles: user.desiredRoles || [], noResume: true, allDetectedSkills: [] });
     }
 
     // Use the most recent resume
@@ -805,12 +812,19 @@ exports.analyzeLatestResume = async (req, res) => {
         }
       }
 
+      // Store all detected skills in user profile even when no desired roles
+      const allDetectedSkills = Array.from(present).sort();
+      await User.findByIdAndUpdate(userId, { 
+        resumeDetectedSkills: allDetectedSkills 
+      });
+
       return res.json({
         resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
         desiredRoles,
         presentSkills: Array.from(present).sort(),
         missingSkills: [],
         presentProjects,
+        allDetectedSkills, // Include all detected skills in response
       });
     }
 
@@ -857,11 +871,19 @@ exports.analyzeLatestResume = async (req, res) => {
 
     const missing = Array.from(requiredSkillSet).filter((s) => !present.has(s));
 
+    // Store all detected skills in user profile
+    const allDetectedSkills = Array.from(allPresentSkills).sort();
+    await User.findByIdAndUpdate(userId, { 
+      resumeDetectedSkills: allDetectedSkills 
+    });
+
     return res.json({
       resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
       desiredRoles,
       missingSkills: missing.sort(),
+      presentSkills: Array.from(present).sort(),
       presentProjects,
+      allDetectedSkills, // Include all detected skills in response
     });
   } catch (err) {
     console.error(err);

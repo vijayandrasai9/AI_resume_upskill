@@ -72,6 +72,13 @@ exports.deleteResume = async (req, res) => {
 
     await user.save();
 
+    // Clear stored skills if no resumes remain
+    if (user.resumes.length === 0) {
+      await User.findByIdAndUpdate(userId, { 
+        resumeDetectedSkills: [] 
+      });
+    }
+
     // Delete the file from disk if it exists
     const filePath = path.join(__dirname, "..", "uploads", filename);
     try {

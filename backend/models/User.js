@@ -13,6 +13,7 @@ const userSchema = new mongoose.Schema({
   desiredRoles: [String],
   appliedRoles: [String],
   skills:    [skillSchema],
+  resumeDetectedSkills: [String], // Skills detected from resume
   resumeUrl: String,
   resumes: [
     new mongoose.Schema({

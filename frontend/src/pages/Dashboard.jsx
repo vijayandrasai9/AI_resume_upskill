@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatBox from "./components/chatBox";
 function Section({ title, right, children }) {
   return (
@@ -23,12 +23,17 @@ export default function Dashboard() {
       { name: "Node.js", level: 60 },
       { name: "CSS", level: 55 },
     ],
+    resumeDetectedSkills: [],
   });
 
-  const [desiredRoles, setDesiredRoles] = useState(["Frontend Developer"]);
+  const [desiredRoles, setDesiredRoles] = useState([]);
   const [appliedRoles, setAppliedRoles] = useState([]);
   const [activities, setActivities] = useState([]);
   const [newRole, setNewRole] = useState("");
+  const [availableRoles, setAvailableRoles] = useState([]);
+  const [selectedRole, setSelectedRole] = useState("");
+  const [requiredSkills, setRequiredSkills] = useState([]);
+  const [roleSkillsMap, setRoleSkillsMap] = useState({});
 
   const [resumeFiles, setResumeFiles] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -44,7 +49,30 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
 
-  async function refreshAnalysis(headers) {
+  const fetchRequiredSkills = useCallback(async (roles) => {
+    if (!Array.isArray(roles) || roles.length === 0) {
+      setRequiredSkills([]);
+      setRoleSkillsMap({});
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/roles/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ roles })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data?.requiredSkills)) setRequiredSkills(data.requiredSkills);
+        if (data?.roleSkillsMap) setRoleSkillsMap(data.roleSkillsMap);
+      }
+    } catch (err) {
+      console.error("Failed to fetch required skills:", err);
+    }
+  }, []);
+
+  const refreshAnalysis = useCallback(async (headers) => {
     try {
       const ar = await fetch("/api/analyze-resume", { headers });
       if (ar.ok) {
@@ -56,6 +84,16 @@ export default function Dashboard() {
           noResume: Boolean(data?.noResume),
           presentProjects: Array.isArray(data?.presentProjects) ? data.presentProjects : [],
         });
+        
+        // Refresh profile to get updated resume-detected skills
+        try {
+          const profileRes = await fetch("/api/profile", { headers });
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            setProfile((prev) => ({ ...prev, ...profileData }));
+          }
+        } catch {}
+        
         // Refresh project TODOs whenever analysis updates
         try {
           const pr = await fetch("/api/project-recommendations", { headers });
@@ -66,7 +104,7 @@ export default function Dashboard() {
         } catch {}
       }
     } catch {}
-  }
+  }, []);
 
   useEffect(() => {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -78,7 +116,13 @@ export default function Dashboard() {
           if (res.ok) {
             const data = await res.json();
             setProfile((prev) => ({ ...prev, ...data }));
-            if (Array.isArray(data?.desiredRoles)) setDesiredRoles(data.desiredRoles);
+            if (Array.isArray(data?.desiredRoles)) {
+              setDesiredRoles(data.desiredRoles);
+              // Fetch required skills for the loaded desired roles
+              if (data.desiredRoles.length > 0) {
+                fetchRequiredSkills(data.desiredRoles);
+              }
+            }
             if (Array.isArray(data?.appliedRoles)) setAppliedRoles(data.appliedRoles);
             if (Array.isArray(data?.activities)) setActivities(data.activities);
           }
@@ -120,14 +164,24 @@ export default function Dashboard() {
           }
         } catch {}
 
-        // Initial AI analysis (if a resume exists)
+        // Initial AI analysis (if a resume exists) - run after profile is loaded
         try {
           await refreshAnalysis(headers);
         } catch {}
+
+        // Fetch available roles
+        try {
+          const res = await fetch("/api/roles");
+          if (res.ok) {
+            const data = await res.json();
+            if (Array.isArray(data?.roles)) setAvailableRoles(data.roles);
+          }
+        } catch {}
+
       } catch {}
     };
     fetchAll();
-  }, [token]);
+  }, [token, fetchRequiredSkills, refreshAnalysis]);
 
   useEffect(() => {
     // Filter project TODOs
@@ -226,14 +280,25 @@ export default function Dashboard() {
   }
 
   function addDesiredRole() {
-    const role = newRole.trim();
+    const role = newRole.trim() || selectedRole;
     if (!role) return;
-    setDesiredRoles((r) => {
-      const next = Array.from(new Set([role, ...r]));
-      persistRoles(next, appliedRoles);
-      return next;
-    });
+    
+    // Don't add if already exists
+    if (desiredRoles.includes(role)) {
+      setNewRole("");
+      setSelectedRole("");
+      return;
+    }
+    
+    const nextRoles = Array.from(new Set([role, ...desiredRoles]));
+    setDesiredRoles(nextRoles);
+    persistRoles(nextRoles, appliedRoles);
+    
+    // Fetch required skills for the updated role list
+    fetchRequiredSkills(nextRoles);
+    
     setNewRole("");
+    setSelectedRole("");
   }
 
   function markApplied(role) {
@@ -250,11 +315,12 @@ export default function Dashboard() {
   }
 
   function removeDesiredRole(role) {
-    setDesiredRoles((roles) => {
-      const next = roles.filter((r) => r !== role);
-      persistRoles(next, appliedRoles);
-      return next;
-    });
+    const nextRoles = desiredRoles.filter((r) => r !== role);
+    setDesiredRoles(nextRoles);
+    persistRoles(nextRoles, appliedRoles);
+    
+    // Fetch required skills for the updated role list
+    fetchRequiredSkills(nextRoles);
   }
 
   function removeAppliedRole(index) {
@@ -361,16 +427,14 @@ export default function Dashboard() {
             </div>
           </Section>
           <Section title="Skills Detected from Resume">
-            {analysis?.noResume ? (
-              <div style={{ color: "#6b7280" }}>Upload a resume to detect your skills.</div>
-            ) : Array.isArray(analysis?.presentSkills) && analysis.presentSkills.length > 0 ? (
+            {Array.isArray(profile?.resumeDetectedSkills) && profile.resumeDetectedSkills.length > 0 ? (
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {analysis.presentSkills.map((s) => (
+                {profile.resumeDetectedSkills.map((s) => (
                   <span key={s} style={{ background: "#e5f3ff", color: "#1e40af", padding: "6px 10px", borderRadius: 999 }}>{s}</span>
                 ))}
               </div>
             ) : (
-              <div style={{ color: "#6b7280" }}>No skills detected yet.</div>
+              <div style={{ color: "#6b7280" }}>Upload a resume to detect your skills.</div>
             )}
           </Section>
         </div>
@@ -380,9 +444,45 @@ export default function Dashboard() {
           <Section
             title="Desired Roles"
             right={
-              <div style={{ display: "flex", gap: 8 }}>
-                <input value={newRole} onChange={(e) => setNewRole(e.target.value)} placeholder="Add role" style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 10px" }} />
-                <button onClick={addDesiredRole} style={{ background: "#111827", color: "#fff", border: 0, borderRadius: 8, padding: "6px 12px", cursor: "pointer" }}>Add</button>
+              <div style={{ display: "flex", gap: 8, flexDirection: "column", alignItems: "flex-end" }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <select 
+                    value={selectedRole} 
+                    onChange={(e) => setSelectedRole(e.target.value)}
+                    style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 10px", minWidth: 200 }}
+                  >
+                    <option value="">Select a role...</option>
+                    {availableRoles
+                      .filter(role => !desiredRoles.includes(role))
+                      .map(role => (
+                        <option key={role} value={role}>{role}</option>
+                      ))}
+                  </select>
+                  <button 
+                    onClick={addDesiredRole} 
+                    disabled={!selectedRole && !newRole.trim()}
+                    style={{ 
+                      background: (!selectedRole && !newRole.trim()) ? "#9ca3af" : "#111827", 
+                      color: "#fff", 
+                      border: 0, 
+                      borderRadius: 8, 
+                      padding: "6px 12px", 
+                      cursor: (!selectedRole && !newRole.trim()) ? "not-allowed" : "pointer" 
+                    }}
+                  >
+                    Add
+                  </button>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "#6b7280" }}>Or add custom:</span>
+                  <input 
+                    value={newRole} 
+                    onChange={(e) => setNewRole(e.target.value)} 
+                    placeholder="Custom role" 
+                    style={{ border: "1px solid #d1d5db", borderRadius: 8, padding: "6px 10px", width: 120 }} 
+                    onKeyDown={(e) => e.key === "Enter" && addDesiredRole()}
+                  />
+                </div>
               </div>
             }
           >
@@ -420,21 +520,77 @@ export default function Dashboard() {
         {/* AI Skill Gap + Project TODOs */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
           <Section title="AI Skill Gap Analysis" right={null}>
-            {Array.isArray(analysis?.desiredRoles) && analysis.desiredRoles.length === 0 ? (
-              <div style={{ color: "#6b7280" }}>Add one or more desired roles to see skill gaps.</div>
-            ) : Array.isArray(analysis?.missingSkills) && analysis.missingSkills.length > 0 ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                <div style={{ fontWeight: 600 }}>Missing skills for {Array.isArray(analysis?.desiredRoles) && analysis.desiredRoles.length > 0 ? analysis.desiredRoles.join(", ") : "your desired roles"}:</div>
-                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                  {analysis.missingSkills.map((s) => (
-                    <span key={s} style={{ background: "#fef3c7", color: "#92400e", padding: "6px 10px", borderRadius: 999 }}>{s}</span>
-                  ))}
-                </div>
-              </div>
-            ) : Array.isArray(analysis?.desiredRoles) && analysis.desiredRoles.length > 0 ? (
-              <div style={{ color: "#6b7280" }}>No missing skills detected for your desired roles.</div>
+            {requiredSkills.length === 0 ? (
+              <div style={{ color: "#6b7280" }}>Add one or more desired roles to see required skills.</div>
             ) : (
-              <div style={{ color: "#6b7280" }}>Add one or more desired roles to see skill gaps.</div>
+              <div style={{ display: "grid", gap: 12 }}>
+                {/* Required Skills */}
+                <div>
+                  <div style={{ fontWeight: 600, marginBottom: 8 }}>
+                    Required skills for {desiredRoles.join(", ")}:
+                  </div>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {requiredSkills.map((s) => (
+                      <span key={s} style={{ 
+                        background: "#e5f3ff", 
+                        color: "#1e40af", 
+                        padding: "6px 10px", 
+                        borderRadius: 999 
+                      }}>
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Missing Skills (when resume is uploaded) */}
+                {Array.isArray(analysis?.missingSkills) && analysis.missingSkills.length > 0 && (
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 8, color: "#dc2626" }}>
+                      Missing skills (not found in resume):
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {analysis.missingSkills.map((s) => (
+                        <span key={s} style={{ 
+                          background: "#fef3c7", 
+                          color: "#92400e", 
+                          padding: "6px 10px", 
+                          borderRadius: 999 
+                        }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Present Skills (when resume is uploaded) */}
+                {Array.isArray(analysis?.presentSkills) && analysis.presentSkills.length > 0 && (
+                  <div>
+                    <div style={{ fontWeight: 600, marginBottom: 8, color: "#059669" }}>
+                      Skills found in resume:
+                    </div>
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                      {analysis.presentSkills.map((s) => (
+                        <span key={s} style={{ 
+                          background: "#dcfce7", 
+                          color: "#166534", 
+                          padding: "6px 10px", 
+                          borderRadius: 999 
+                        }}>
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {analysis?.noResume && (
+                  <div style={{ color: "#6b7280", fontSize: 14, fontStyle: "italic" }}>
+                    Upload a resume to see which skills you already have and which ones you need to learn.
+                  </div>
+                )}
+              </div>
             )}
           </Section>
           <Section title="Project TODOs">
