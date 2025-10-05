@@ -86,7 +86,7 @@ exports.chat = async (req, res) => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             contents,
-            generationConfig: { temperature: 0.6, maxOutputTokens: 2048 },
+            generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
           }),
         });
         const text = await resp.text().catch(() => "");
@@ -117,18 +117,20 @@ exports.chat = async (req, res) => {
         return res.status(502).json({ error: "No response from Gemini" });
       }
 
-      // Heuristic: if cut mid-thought or likely due to token limit, request continuation up to 2 times
+      // Heuristic: if cut mid-thought or likely due to token limit, request continuation up to 3 times
       const looksCutOff = (text) => {
         if (!text) return false;
         const openFences = (text.match(/```/g) || []).length % 2 === 1;
-        const endsWeird = /\b(and|or|to|with|for|the|a|an|in|on|of)$/i.test(text.trim());
-        const noClosingPunct = !/[.!?`]>\)]\s*$/.test(text.trim());
-        return openFences || (endsWeird && noClosingPunct);
+        const trimmed = text.trim();
+        const endsWithPunct = /[.!?\)]$/.test(trimmed) || /```$/.test(trimmed);
+        const endsWithList = /\n-\s+\w+$/.test(text) || /\n\d+\.\s+\w+$/.test(text);
+        const endsWithConnector = /\b(and|or|to|with|for|the|a|an|in|on|of|that|which|because|since)$/i.test(trimmed);
+        return openFences || (!endsWithPunct && !endsWithList) || endsWithConnector;
       };
 
       let tries = 0;
       let lastFinish = String(first?.finishReason || "");
-      while (tries < 2 && (looksCutOff(accumulated) || /MAX_TOKENS|LENGTH/i.test(lastFinish))) {
+      while (tries < 3 && (looksCutOff(accumulated) || /MAX_TOKENS|LENGTH/i.test(lastFinish))) {
         tries += 1;
         const cont = await generate([
           { role: "user", parts: [{ text: combined }] },
@@ -142,6 +144,11 @@ exports.chat = async (req, res) => {
         }
         lastFinish = String(cont?.finishReason || "");
         if (!looksCutOff(addition) && !/MAX_TOKENS|LENGTH/i.test(lastFinish)) break;
+      }
+
+      // Ensure any unbalanced code fences are closed to prevent rendering cutoffs
+      if ((accumulated.match(/```/g) || []).length % 2 === 1) {
+        accumulated += "\n```";
       }
 
       let replyText = accumulated;

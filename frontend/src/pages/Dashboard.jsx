@@ -50,6 +50,21 @@ export default function Dashboard() {
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
 
+  // Fallback computation when server analysis is unavailable
+  const resumeDetected = Array.isArray(profile?.resumeDetectedSkills) ? profile.resumeDetectedSkills : [];
+  const derivedPresent = Array.isArray(requiredSkills)
+    ? requiredSkills.filter((s) => resumeDetected.some((d) => String(d).toLowerCase() === String(s).toLowerCase()))
+    : [];
+  const derivedMissing = Array.isArray(requiredSkills)
+    ? requiredSkills.filter((s) => !derivedPresent.some((p) => String(p).toLowerCase() === String(s).toLowerCase()))
+    : [];
+  const displayPresentSkills = Array.isArray(analysis?.presentSkills) && analysis.presentSkills.length > 0
+    ? analysis.presentSkills
+    : derivedPresent;
+  const displayMissingSkills = Array.isArray(analysis?.missingSkills) && analysis.missingSkills.length > 0
+    ? analysis.missingSkills
+    : derivedMissing;
+
   const fetchRequiredSkills = useCallback(async (roles) => {
     if (!Array.isArray(roles) || roles.length === 0) {
       setRequiredSkills([]);
@@ -545,13 +560,13 @@ export default function Dashboard() {
                 </div>
 
                 {/* Missing Skills (when resume is uploaded) */}
-                {Array.isArray(analysis?.missingSkills) && analysis.missingSkills.length > 0 && (
+                {Array.isArray(displayMissingSkills) && displayMissingSkills.length > 0 && (
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: 8, color: "#dc2626" }}>
                       Missing skills (not found in resume):
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {analysis.missingSkills.map((s) => (
+                      {displayMissingSkills.map((s) => (
                         <span key={s} style={{ 
                           background: "#fef3c7", 
                           color: "#92400e", 
@@ -566,13 +581,13 @@ export default function Dashboard() {
                 )}
 
                 {/* Present Skills (when resume is uploaded) */}
-                {Array.isArray(analysis?.presentSkills) && analysis.presentSkills.length > 0 && (
+                {Array.isArray(displayPresentSkills) && displayPresentSkills.length > 0 && (
                   <div>
                     <div style={{ fontWeight: 600, marginBottom: 8, color: "#059669" }}>
                       Skills found in resume:
                     </div>
                     <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                      {analysis.presentSkills.map((s) => (
+                      {displayPresentSkills.map((s) => (
                         <span key={s} style={{ 
                           background: "#dcfce7", 
                           color: "#166534", 
