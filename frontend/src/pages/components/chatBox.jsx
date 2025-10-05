@@ -1,6 +1,7 @@
 // src/components/ChatBox.jsx
 import React, { useState, useRef, useEffect } from "react";
 import { sendChatMessage } from "../../aiServices/chatService";
+import MarkdownMessage from "./MarkdownMessage";
 
 export default function ChatBox() {
   const [messages, setMessages] = useState([
@@ -108,20 +109,7 @@ export default function ChatBox() {
               marginBottom: 12,
             }}
           >
-            <div
-              style={{
-                maxWidth: "80%",
-                padding: "8px 12px",
-                borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                backgroundColor: m.role === "user" ? "#3b82f6" : "#e5e7eb",
-                color: m.role === "user" ? "white" : "#374151",
-                fontSize: 14,
-                lineHeight: 1.4,
-                wordWrap: "break-word"
-              }}
-            >
-              {m.content}
-            </div>
+            <MarkdownMessage text={m.content} isUser={m.role === "user"} />
           </div>
         ))}
         {isLoading && (

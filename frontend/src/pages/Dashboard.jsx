@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatBox from "./components/chatBox";
+import MarkdownMessage from "./components/MarkdownMessage";
 function Section({ title, right, children }) {
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: 12, padding: 20, marginBottom: 20 }}>
@@ -823,20 +824,7 @@ function FloatingChatBubble() {
                   marginBottom: 12,
                 }}
               >
-                <div
-                  style={{
-                    maxWidth: "80%",
-                    padding: "8px 12px",
-                    borderRadius: m.role === "user" ? "18px 18px 4px 18px" : "18px 18px 18px 4px",
-                    backgroundColor: m.role === "user" ? "#3b82f6" : "#e5e7eb",
-                    color: m.role === "user" ? "white" : "#374151",
-                    fontSize: 14,
-                    lineHeight: 1.4,
-                    wordWrap: "break-word"
-                  }}
-                >
-                  {m.content}
-                </div>
+                <MarkdownMessage text={m.content} isUser={m.role === "user"} />
               </div>
             ))}
             {isLoading && (
