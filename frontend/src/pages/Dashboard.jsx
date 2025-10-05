@@ -700,6 +700,9 @@ function FloatingChatBubble() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
+  const [chatSize, setChatSize] = useState({ width: 350, height: 500 });
+  const isResizingRef = useRef(false);
+  const startPosRef = useRef({ x: 0, y: 0, width: 350, height: 500 });
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -708,6 +711,30 @@ function FloatingChatBubble() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    function onMouseMove(e) {
+      if (!isResizingRef.current) return;
+      const dx = e.clientX - startPosRef.current.x;
+      const dy = e.clientY - startPosRef.current.y;
+      const minW = 300;
+      const minH = 300;
+      const maxW = Math.min(window.innerWidth - 40, 900);
+      const maxH = Math.min(window.innerHeight - 140, 900);
+      const nextW = Math.max(minW, Math.min(maxW, startPosRef.current.width + dx));
+      const nextH = Math.max(minH, Math.min(maxH, startPosRef.current.height + dy));
+      setChatSize({ width: Math.round(nextW), height: Math.round(nextH) });
+    }
+    function onMouseUp() {
+      isResizingRef.current = false;
+    }
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+    };
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -777,8 +804,8 @@ function FloatingChatBubble() {
             position: "fixed",
             bottom: 90,
             right: 20,
-            width: 350,
-            height: 500,
+            width: chatSize.width,
+            height: chatSize.height,
             backgroundColor: "white",
             borderRadius: 12,
             boxShadow: "0 8px 32px rgba(0, 0, 0, 0.12)",
@@ -914,6 +941,26 @@ function FloatingChatBubble() {
               {isLoading ? "..." : "Send"}
             </button>
           </div>
+
+          {/* Resize Handle */}
+          <div
+            onMouseDown={(e) => {
+              isResizingRef.current = true;
+              startPosRef.current = { x: e.clientX, y: e.clientY, width: chatSize.width, height: chatSize.height };
+            }}
+            style={{
+              position: "absolute",
+              right: 4,
+              bottom: 4,
+              width: 16,
+              height: 16,
+              cursor: "nwse-resize",
+              background: "linear-gradient(135deg, rgba(0,0,0,0.12) 0%, rgba(0,0,0,0.0) 60%)",
+              borderRadius: 4,
+              userSelect: "none"
+            }}
+            title="Resize"
+          />
         </div>
       )}
     </>
