@@ -2,13 +2,21 @@ const path = require("path");
 const fs = require("fs");
 const { v4: uuid } = require("uuid");
 const User = require("../models/User");
+const { analyzeAndStoreLatestResume } = require("./aiController");
 
 exports.listResumes = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
     const user = await User.findById(userId).select("resumes");
-    return res.json(user?.resumes || []);
+    const inferred = `${req.protocol}://${req.get("host")}`;
+    const base = String(process.env.PUBLIC_BASE_URL || inferred).replace(/\/$/, "");
+    const list = (user?.resumes || []).map((r) => {
+      const rel = String(r?.url || "");
+      const abs = rel.startsWith("http") ? rel : `${base}${rel}`;
+      return r && typeof r.toObject === "function" ? { ...r.toObject(), url: abs } : { ...r, url: abs };
+    });
+    return res.json(list);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -30,14 +38,23 @@ exports.uploadResume = async (req, res) => {
     const destPath = path.join(uploadsDir, filename);
     fs.writeFileSync(destPath, req.file.buffer);
 
-    const publicUrl = `/uploads/${filename}`;
+    const relativeUrl = `/uploads/${filename}`;
+    const inferred = `${req.protocol}://${req.get("host")}`;
+    const base = String(process.env.PUBLIC_BASE_URL || inferred).replace(/\/$/, "");
+    const publicUrl = base ? `${base}${relativeUrl}` : relativeUrl;
 
     const update = {
       $push: {
-        resumes: { name: original, url: publicUrl, uploadedAt: new Date() },
+        // store relative path in DB for portability
+        resumes: { name: original, url: relativeUrl, uploadedAt: new Date() },
       },
     };
     await User.findByIdAndUpdate(userId, update);
+
+    // Automatically analyze the latest uploaded resume
+    try {
+      await analyzeAndStoreLatestResume(userId);
+    } catch {}
 
     return res.status(201).json({ message: "Uploaded", url: publicUrl });
   } catch (err) {

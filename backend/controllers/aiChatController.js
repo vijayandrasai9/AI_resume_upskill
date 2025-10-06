@@ -1,4 +1,10 @@
 const fetch = global.fetch || require("node-fetch");
+const jwt = require("jsonwebtoken");
+const path = require("path");
+const fs = require("fs");
+const pdfParse = require("pdf-parse");
+const User = require("../models/User");
+const { analyzeAndStoreLatestResume } = require("./aiController");
 
 exports.chat = async (req, res) => {
   try {
@@ -37,12 +43,69 @@ exports.chat = async (req, res) => {
       "- When citing sources, include the site name and a brief title.",
     ].join("\n");
 
+    // Optionally enrich context from authenticated user's resume/profile
+    let enriched = {
+      desiredRoles: [],
+      appliedRoles: [],
+      resumeDetectedSkills: [],
+      resumeSnippet: "",
+    };
+
+    // Try to decode JWT if provided, but do not fail chat if missing/invalid
+    const bearer = req.header("Authorization");
+    const token = typeof bearer === "string" && bearer.startsWith("Bearer ") ? bearer.split(" ")[1] : null;
+    let userId = null;
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || "dev_secret_change_me");
+        userId = decoded?.id || null;
+      } catch {}
+    }
+
+    if (userId) {
+      try {
+        // Ensure the latest upload is analyzed (best-effort; short-circuit errors)
+        try { await analyzeAndStoreLatestResume(userId); } catch {}
+
+        const user = await User.findById(userId).select("desiredRoles appliedRoles resumes resumeDetectedSkills resumeProfile");
+        if (user) {
+          enriched.desiredRoles = Array.isArray(user.desiredRoles) ? user.desiredRoles : [];
+          enriched.appliedRoles = Array.isArray(user.appliedRoles) ? user.appliedRoles : [];
+          enriched.resumeDetectedSkills = Array.isArray(user.resumeDetectedSkills) ? user.resumeDetectedSkills : [];
+          enriched.resumeProfile = user.resumeProfile || null;
+
+          // Read a small snippet from the latest resume to ground responses (best-effort)
+          const latest = Array.isArray(user.resumes) && user.resumes.length > 0 ? user.resumes[user.resumes.length - 1] : null;
+          const url = latest?.url || ""; // format: /uploads/<file>
+          const filename = url.split("/uploads/")[1];
+          if (filename) {
+            const filePath = path.join(__dirname, "..", "uploads", filename);
+            if (fs.existsSync(filePath)) {
+              try {
+                const buffer = fs.readFileSync(filePath);
+                const parsed = await pdfParse(buffer).catch(() => ({ text: "" }));
+                const text = String(parsed?.text || "").trim().replace(/\s+/g, " ");
+                enriched.resumeSnippet = text.slice(0, 1500); // cap to keep prompt small
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const derivedAppliedRole = appliedRole || enriched.appliedRoles[0] || "";
+    const mergedPresentSkills = Array.from(new Set([...(presentSkills || []), ...(enriched.resumeDetectedSkills || [])]));
+
     const context = [
-      `Applied role: ${appliedRole || "(none)"}`,
-      `Present skills: ${(presentSkills || []).join(", ") || "(none)"}`,
+      `Applied role: ${derivedAppliedRole || "(none)"}`,
+      `Desired roles: ${(enriched.desiredRoles || []).join(", ") || "(none)"}`,
+      `Present skills: ${mergedPresentSkills.join(", ") || "(none)"}`,
       `Missing skills: ${(missingSkills || []).join(", ") || "(none)"}`,
       `Present projects: ${(presentProjects || []).slice(0, 10).join(" | ") || "(none)"}`,
-    ].join("\n");
+      enriched.resumeSnippet ? `Resume snippet: ${enriched.resumeSnippet}` : "",
+      // Include structured profile if available
+      enriched.resumeProfile ? `\nResume profile:\nName: ${enriched.resumeProfile.name || "(unknown)"}\nEducation: ${(enriched.resumeProfile.education || []).join(" | ") || "(none)"}\nProjects: ${(enriched.resumeProfile.projects || []).slice(0, 5).join(" | ") || "(none)"}\nAchievements: ${(enriched.resumeProfile.achievements || []).slice(0, 5).join(" | ") || "(none)"}` : "",
+    ].filter(Boolean).join("\n");
 
     const combined = `${systemPreamble}\n\nContext:\n${context}\n\nUser question: ${message}`;
 

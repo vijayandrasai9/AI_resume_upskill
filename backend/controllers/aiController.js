@@ -731,160 +731,183 @@ function extractTokens(text) {
   return tokens;
 }
 
+function extractResumeProfile(text) {
+  const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const content = lines.join("\n");
+
+  // Name: heuristic - first non-empty line that is not an email/phone header and < 80 chars
+  let name = "";
+  for (const l of lines.slice(0, 10)) {
+    const hasAt = /@/.test(l);
+    const hasPhone = /\+?\d[\d\s().-]{6,}/.test(l);
+    const looksHeader = /^(curriculum vitae|resume)$/i.test(l);
+    if (!hasAt && !hasPhone && !looksHeader && l.length > 1 && l.length < 80) { name = l; break; }
+  }
+
+  // Section-based extraction using simple regex anchors
+  function section(keywords) {
+    const re = new RegExp(`(^|\n)\s*(?:${keywords.join("|")})\s*[:\-]?\s*\n`, "i");
+    const idx = content.search(re);
+    if (idx === -1) return "";
+    const after = content.slice(idx).replace(re, "\n");
+    // stop at next all-caps-ish header or double newline
+    const stop = after.search(/\n\s*(?:[A-Z][A-Z\s/&-]{3,}|\n\n)/);
+    return stop === -1 ? after : after.slice(0, stop);
+  }
+
+  const educationBlock = section(["education", "academics", "qualifications"]); 
+  const experienceBlock = section(["experience", "work experience", "professional experience", "employment"]);
+  const projectsBlock = section(["projects", "personal projects", "academic projects", "publications"]);
+  const achievementsBlock = section(["achievements", "awards", "accomplishments", "honors"]);
+  const skillsBlock = section(["skills", "technical skills", "skills summary", "key skills"]);
+
+  function splitItems(block) {
+    return String(block || "")
+      .split(/\n+/)
+      .map((s) => s.replace(/^[-•\u2022\s]+/, "").trim())
+      .filter((s) => s && s.length > 1)
+      .slice(0, 20);
+  }
+
+  function splitSkills(block) {
+    const merged = String(block || "").replace(/\n+/g, ", ");
+    return merged.split(/[,;•\u2022\|]/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .slice(0, 100);
+  }
+
+  return {
+    name,
+    education: splitItems(educationBlock),
+    skills: splitSkills(skillsBlock),
+    experience: splitItems(experienceBlock),
+    projects: splitItems(projectsBlock),
+    achievements: splitItems(achievementsBlock),
+  };
+}
+
+async function analyzeAndStoreLatestResume(userId) {
+  const user = await User.findById(userId).select("resumes desiredRoles");
+  if (!user) throw new Error("User not found");
+  if (!Array.isArray(user.resumes) || user.resumes.length === 0) {
+    await User.findByIdAndUpdate(userId, { resumeDetectedSkills: [], resumeProfile: { lastAnalyzedAt: new Date() } });
+    return { desiredRoles: user.desiredRoles || [], missingSkills: [], presentSkills: [], presentProjects: [], noResume: true, resumeProfile: user.resumeProfile || {} };
+  }
+
+  const latest = user.resumes[user.resumes.length - 1];
+  const url = latest.url || "";
+  const filename = url.split("/uploads/")[1];
+  if (!filename) throw new Error("Invalid resume URL");
+
+  const filePath = path.join(__dirname, "..", "uploads", filename);
+  if (!fs.existsSync(filePath)) throw new Error("Resume file not found");
+
+  const buffer = fs.readFileSync(filePath);
+  const parsed = await pdfParse(buffer).catch(() => ({ text: "" }));
+  const text = parsed.text || "";
+  const normalizedText = normalize(text);
+
+  // Optional external NER
+  let externalTokens = [];
+  const serviceUrl = process.env.AI_SERVICE_URL;
+  if (serviceUrl) {
+    try {
+      const resp = await fetch(`${serviceUrl.replace(/\/$/, "")}/analyze`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+        timeout: 10000,
+      });
+      if (resp.ok) {
+        const data = await resp.json().catch(() => ({}));
+        if (Array.isArray(data?.tokens)) externalTokens = data.tokens.map((t) => String(t).toLowerCase());
+      }
+    } catch {}
+  }
+
+  const tokens = new Set([...extractTokens(text), ...externalTokens]);
+
+  // Present projects (simple heuristic)
+  const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const projectKeywords = ["project", "built", "developed", "implemented", "created", "portfolio", "system", "application", "app"];
+  const presentProjects = Array.from(new Set(lines.filter((l) => projectKeywords.some((k) => l.toLowerCase().includes(k))).slice(0, 20)));
+
+  const desiredRoles = Array.isArray(user.desiredRoles) ? user.desiredRoles : [];
+
+  // Build union of all known skills
+  const allKnownSkills = new Set();
+  Object.values(ROLE_SKILL_MAP).forEach((arr) => { (arr || []).forEach((s) => allKnownSkills.add(String(s).toLowerCase())); });
+
+  const allPresentSkills = new Set();
+  for (const skill of allKnownSkills) {
+    const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
+    if (tokens.has(skill) || boundaryRe.test(normalizedText)) {
+      allPresentSkills.add(skill);
+    }
+  }
+
+  // Gap vs desired roles
+  const requiredSkillSet = new Set();
+  (desiredRoles || []).forEach((role) => {
+    const roleStr = String(role || "").toLowerCase().trim();
+    let skills = ROLE_SKILL_MAP[roleStr] || [];
+    if (skills.length === 0) {
+      for (const [key, value] of Object.entries(ROLE_SKILL_MAP)) {
+        if (key.includes(roleStr) || roleStr.includes(key)) { skills = value; break; }
+      }
+    }
+    skills.forEach((s) => requiredSkillSet.add(s));
+  });
+
+  const present = new Set();
+  for (const reqSkill of requiredSkillSet) {
+    const lower = reqSkill.toLowerCase();
+    if (allPresentSkills.has(lower)) present.add(reqSkill);
+  }
+  const missing = Array.from(requiredSkillSet).filter((s) => !present.has(s));
+
+  // Extract structured profile
+  const resumeProfile = extractResumeProfile(text);
+
+  // Persist
+  const allDetectedSkills = Array.from(allPresentSkills).sort();
+  await User.findByIdAndUpdate(userId, {
+    resumeDetectedSkills: allDetectedSkills,
+    resumeProfile: { ...resumeProfile, lastAnalyzedAt: new Date() },
+  });
+
+  return {
+    resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
+    desiredRoles,
+    missingSkills: missing.sort(),
+    presentSkills: Array.from(present).sort(),
+    presentProjects,
+    allDetectedSkills,
+    resumeProfile,
+  };
+}
+
+exports.analyzeAndStoreLatestResume = analyzeAndStoreLatestResume;
+
 exports.analyzeLatestResume = async (req, res) => {
   try {
     const userId = req.user?.id;
     if (!userId) return res.status(401).json({ message: "Unauthorized" });
 
-    const user = await User.findById(userId).select("resumes desiredRoles");
-    if (!user) return res.status(404).json({ message: "User not found" });
-    if (!Array.isArray(user.resumes) || user.resumes.length === 0) {
-      // Clear stored skills when no resume is present
-      await User.findByIdAndUpdate(userId, { 
-        resumeDetectedSkills: [] 
-      });
-      return res.status(200).json({ message: "No resumes uploaded", missingSkills: [], presentSkills: [], desiredRoles: user.desiredRoles || [], noResume: true, allDetectedSkills: [] });
-    }
-
-    // Use the most recent resume
-    const latest = user.resumes[user.resumes.length - 1];
-    const url = latest.url || ""; // format: /uploads/<file>
-    const filename = url.split("/uploads/")[1];
-    if (!filename) return res.status(400).json({ message: "Invalid resume URL" });
-
-    const filePath = path.join(__dirname, "..", "uploads", filename);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ message: "Resume file not found" });
-
-    const buffer = fs.readFileSync(filePath);
-    const parsed = await pdfParse(buffer).catch(() => ({ text: "" }));
-    const text = parsed.text || "";
-    const normalizedText = normalize(text);
-
-    // Optionally call external AI service (spaCy) if configured
-    let externalTokens = [];
-    const serviceUrl = process.env.AI_SERVICE_URL;
-    if (serviceUrl) {
-      try {
-        const resp = await fetch(`${serviceUrl.replace(/\/$/, "")}/analyze`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
-          timeout: 10000,
-        });
-        if (resp.ok) {
-          const data = await resp.json().catch(() => ({}));
-          if (Array.isArray(data?.tokens)) externalTokens = data.tokens.map((t) => String(t).toLowerCase());
-        }
-      } catch {}
-    }
-
-    // Extract present skills from resume text
-    const tokens = new Set([...extractTokens(text), ...externalTokens]);
-
-    // Extract present projects (very simple heuristic: lines containing keywords)
-    const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-    const projectKeywords = ["project", "built", "developed", "implemented", "created", "portfolio", "system", "application", "app"];
-    const presentProjects = Array.from(
-      new Set(
-        lines
-          .filter((l) => projectKeywords.some((k) => l.toLowerCase().includes(k)))
-          .slice(0, 20)
-      )
-    );
-
-    // Determine target skills from desired roles
-    const desiredRoles = Array.isArray(user.desiredRoles) ? user.desiredRoles : [];
-
-    // If no desired roles are provided, do not compute a gap. Return only detected present skills.
-    if (!desiredRoles || desiredRoles.length === 0) {
-      // Build a union of all known skills from ROLE_SKILL_MAP to filter tokens
-      const knownSkills = new Set();
-      Object.values(ROLE_SKILL_MAP).forEach((arr) => {
-        (arr || []).forEach((s) => knownSkills.add(String(s).toLowerCase()));
-      });
-
-      const present = new Set();
-      for (const skill of knownSkills) {
-        const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
-        if (tokens.has(skill) || boundaryRe.test(normalizedText)) {
-          present.add(skill);
-        }
+    try {
+      const result = await analyzeAndStoreLatestResume(userId);
+      return res.json(result);
+    } catch (e) {
+      // If no resume or issues, keep previous behavior
+      const user = await User.findById(userId).select("desiredRoles resumes");
+      if (!user || !Array.isArray(user.resumes) || user.resumes.length === 0) {
+        await User.findByIdAndUpdate(userId, { resumeDetectedSkills: [] });
+        return res.status(200).json({ message: "No resumes uploaded", missingSkills: [], presentSkills: [], desiredRoles: user?.desiredRoles || [], noResume: true, allDetectedSkills: [] });
       }
-
-      // Store all detected skills in user profile even when no desired roles
-      const allDetectedSkills = Array.from(present).sort();
-      await User.findByIdAndUpdate(userId, { 
-        resumeDetectedSkills: allDetectedSkills 
-      });
-
-      return res.json({
-        resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
-        desiredRoles,
-        presentSkills: Array.from(present).sort(),
-        missingSkills: [],
-        presentProjects,
-        allDetectedSkills, // Include all detected skills in response
-      });
+      return res.status(500).json({ message: "Server error" });
     }
-
-    const requiredSkillSet = new Set();
-    desiredRoles.forEach((role) => {
-      const roleStr = String(role || "").toLowerCase().trim();
-      // Try exact match first, then partial matches
-      let skills = ROLE_SKILL_MAP[roleStr] || [];
-      if (skills.length === 0) {
-        // Try partial matching for roles like "Frontend Developer" -> "frontend developer"
-        for (const [key, value] of Object.entries(ROLE_SKILL_MAP)) {
-          if (key.includes(roleStr) || roleStr.includes(key)) {
-            skills = value;
-            break;
-          }
-        }
-      }
-      skills.forEach((s) => requiredSkillSet.add(s));
-    });
-
-    // First, detect ALL skills from resume (not just required ones)
-    const allKnownSkills = new Set();
-    Object.values(ROLE_SKILL_MAP).forEach((arr) => {
-      (arr || []).forEach((s) => allKnownSkills.add(String(s).toLowerCase()));
-    });
-
-    const allPresentSkills = new Set();
-    for (const skill of allKnownSkills) {
-      const escaped = skill.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      const boundaryRe = new RegExp(`\\b${escaped}\\b`, "i");
-      if (tokens.has(skill) || boundaryRe.test(normalizedText)) {
-        allPresentSkills.add(skill);
-      }
-    }
-
-    // Then check which required skills are present
-    const present = new Set();
-    for (const reqSkill of requiredSkillSet) {
-      const lower = reqSkill.toLowerCase();
-      if (allPresentSkills.has(lower)) {
-        present.add(reqSkill);
-      }
-    }
-
-    const missing = Array.from(requiredSkillSet).filter((s) => !present.has(s));
-
-    // Store all detected skills in user profile
-    const allDetectedSkills = Array.from(allPresentSkills).sort();
-    await User.findByIdAndUpdate(userId, { 
-      resumeDetectedSkills: allDetectedSkills 
-    });
-
-    return res.json({
-      resume: { name: latest.name, url: latest.url, uploadedAt: latest.uploadedAt },
-      desiredRoles,
-      missingSkills: missing.sort(),
-      presentSkills: Array.from(present).sort(),
-      presentProjects,
-      allDetectedSkills, // Include all detected skills in response
-    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });

@@ -17,7 +17,6 @@ export default function Dashboard() {
   const [profile, setProfile] = useState({
     name: "Your Name",
     email: "you@example.com",
-    theme: "light",
     skills: [
       { name: "JavaScript", level: 70 },
       { name: "React", level: 65 },
@@ -49,6 +48,12 @@ export default function Dashboard() {
 
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
+  
+  // Logout
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.href = "/login";
+  };
 
   // Fallback computation when server analysis is unavailable
   const resumeDetected = Array.isArray(profile?.resumeDetectedSkills) ? profile.resumeDetectedSkills : [];
@@ -375,6 +380,29 @@ export default function Dashboard() {
           <div style={{ width: 80, height: 80, borderRadius: "50%", backgroundColor: "#374151", margin: "0 auto" }} />
           <h3 style={{ margin: "12px 0 4px" }}>{profile.name}</h3>
           <p style={{ margin: 0, color: "#9ca3af", fontSize: 13 }}>{profile.email}</p>
+          
+          {/* Logout Button */}
+          <div style={{ marginTop: 16 }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                backgroundColor: "#374151",
+                color: "#e5e7eb",
+                border: "1px solid #4b5563",
+                borderRadius: 8,
+                cursor: "pointer",
+                fontSize: 14,
+                fontWeight: 500,
+                transition: "background-color 0.2s ease"
+              }}
+              onMouseEnter={(e) => { e.target.style.backgroundColor = "#4b5563"; }}
+              onMouseLeave={(e) => { e.target.style.backgroundColor = "#374151"; }}
+            >
+              Log Out
+            </button>
+          </div>
         </div>
       </div>
 
@@ -391,7 +419,7 @@ export default function Dashboard() {
             <div style={{ fontSize: 28, fontWeight: 700 }}>{desiredRoles.length}</div>
           </div>
           <div style={{ backgroundColor: "#fff", borderRadius: 12, padding: 16 }}>
-            <div style={{ opacity: 0.8, fontSize: 13 }}>Applied Roles</div>
+            <div style={{ opacity: 0.8, fontSize: 13 }}>Working On Roles</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{appliedRoles.length}</div>
           </div>
         </div>
@@ -408,6 +436,9 @@ export default function Dashboard() {
             </label>
           }
         >
+          <div style={{ color: "#6b7280", fontSize: 12, marginBottom: 8 }}>
+            Once uploaded from any device, your resume is saved securely and can be viewed anytime from any device after login.
+          </div>
           {uploadError && <div style={{ color: "#b91c1c", marginBottom: 10 }}>{uploadError}</div>}
           {resumeFiles.length === 0 ? (
             <div style={{ color: "#6b7280" }}>No resumes uploaded yet.</div>
@@ -439,7 +470,6 @@ export default function Dashboard() {
             <div style={{ display: "grid", gap: 8 }}>
               <div><strong>Name:</strong> {profile.name}</div>
               <div><strong>Email:</strong> {profile.email}</div>
-              <div><strong>Theme:</strong> {profile.theme}</div>
             </div>
           </Section>
           <Section title="Skills Detected from Resume">
@@ -506,7 +536,7 @@ export default function Dashboard() {
               {desiredRoles.map((r) => (
                 <span key={r} style={{ background: "#eef2ff", color: "#3730a3", padding: "6px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 8 }}>
                   {r}
-                  <button onClick={() => { markApplied(r); }} style={{ fontSize: 12, cursor: "pointer", border: 0, background: "#111827", color: "#fff", borderRadius: 8, padding: "4px 8px" }}>Mark Applied</button>
+                  <button onClick={() => { markApplied(r); }} style={{ fontSize: 12, cursor: "pointer", border: 0, background: "#111827", color: "#fff", borderRadius: 8, padding: "4px 8px" }}>select</button>
                   <button aria-label="Delete role" title="Delete" onClick={() => removeDesiredRole(r)} style={{ cursor: "pointer", border: 0, background: "transparent", color: "#6b7280", padding: 0 }}>
                     ×
                   </button>
@@ -515,10 +545,10 @@ export default function Dashboard() {
             </div>
           </Section>
 
-          <Section title="Applied Roles">
+          <Section title="Roles Currently Working On">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {appliedRoles.length === 0 ? (
-                <div style={{ color: "#6b7280" }}>No applications tracked yet.</div>
+                <div style={{ color: "#6b7280" }}>No Roles are being worked on yet</div>
               ) : (
                 appliedRoles.map((r, i) => (
                   <span key={`${r}-${i}`} style={{ background: "#ecfdf5", color: "#065f46", padding: "6px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 8 }}>

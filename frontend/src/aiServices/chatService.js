@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:3000", // or "" if using proxy
+  baseURL: "", // let devServer proxy /api
   headers: {
     "Content-Type": "application/json",
   },
@@ -15,7 +15,10 @@ const api = axios.create({
 export async function sendChatMessage(messages) {
   try {
     const userMessage = (messages || []).filter(m => m.role === "user").pop()?.content || "";
-    const { data } = await api.post("/api/chat", { message: userMessage });
+    const token = localStorage.getItem("token") || "";
+    const { data } = await api.post("/api/chat", { message: userMessage }, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     const replyText = data?.reply || "No response";
     return { role: "assistant", content: replyText };
   } catch (err) {

@@ -15,6 +15,15 @@ const userSchema = new mongoose.Schema({
   skills:    [skillSchema],
   resumeDetectedSkills: [String], // Skills detected from resume
   resumeUrl: String,
+  resumeProfile: {
+    name: String,
+    education: [String],
+    skills: [String],
+    experience: [String],
+    projects: [String],
+    achievements: [String],
+    lastAnalyzedAt: { type: Date }
+  },
   resumes: [
     new mongoose.Schema({
       name: String,
