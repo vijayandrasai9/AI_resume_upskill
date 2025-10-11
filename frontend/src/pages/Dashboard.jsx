@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import ChatBox from "./components/chatBox";
 import MarkdownMessage from "./components/MarkdownMessage";
+
 function Section({ title, right, children }) {
   return (
     <div style={{ backgroundColor: "#fff", borderRadius: 12, padding: 20, marginBottom: 20 }}>
@@ -9,6 +10,131 @@ function Section({ title, right, children }) {
         {right}
       </div>
       {children}
+    </div>
+  );
+}
+
+// AI Recommendations Component for YouTube Videos
+function AIRecommendations({ skill }) {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    async function load() {
+      setLoading(true);
+      setError("");
+      try {
+        const response = await fetch(`/api/skill-videos?skill=${encodeURIComponent(skill)}`);
+        if (response.ok) {
+          const data = await response.json();
+          setVideos(data.videos || []);
+        } else {
+          setError("Failed to load video recommendations");
+        }
+      } catch (err) {
+        setError("Error fetching video recommendations");
+        console.error("Video recommendations error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    load();
+  }, [skill]);
+
+  if (loading) return <div style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}>🔍 Searching YouTube for {skill} tutorials...</div>;
+  if (error) return <div style={{ color: "#dc2626", textAlign: "center", padding: "20px" }}>❌ {error}</div>;
+
+  return (
+    <div style={{ padding: "8px 0" }}>
+      {videos.length > 0 ? (
+        <>
+          <h4 style={{ margin: "0 0 16px 0", color: "#1f2937", fontSize: "16px" }}>🎥 Top YouTube Tutorials</h4>
+          <div 
+            style={{ 
+              display: "flex", 
+              gap: 16, 
+              overflowX: "auto",
+              padding: "8px 4px 16px 4px",
+              scrollbarWidth: "thin",
+              scrollbarColor: "#cbd5e1 #f1f5f9",
+              // Prevent horizontal scrolling from affecting parent
+              position: "relative",
+              zIndex: 1
+            }}
+            onWheel={(e) => {
+              // Only handle horizontal wheel events, let vertical scroll pass through
+              if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
+                e.stopPropagation();
+              }
+            }}
+          >
+            {videos.map((video, index) => (
+              <div 
+                key={index} 
+                style={{ 
+                  flex: "0 0 auto",
+                  width: 280,
+                  border: "1px solid #e5e7eb",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  backgroundColor: "white",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                  transition: "transform 0.2s ease, box-shadow 0.2s ease"
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-4px)";
+                  e.currentTarget.style.boxShadow = "0 8px 20px rgba(0,0,0,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)";
+                }}
+              >
+                <img 
+                  src={video.thumbnail} 
+                  alt={video.title}
+                  style={{ 
+                    width: "100%", 
+                    height: 160, 
+                    objectFit: "cover",
+                    borderBottom: "1px solid #e5e7eb"
+                  }}
+                />
+                <div style={{ padding: 12 }}>
+                  <a 
+                    href={video.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    style={{ 
+                      color: "#2563eb", 
+                      textDecoration: "none",
+                      fontWeight: 600,
+                      fontSize: 14,
+                      lineHeight: 1.4,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}
+                    title={video.title}
+                  >
+                    {video.title}
+                  </a>
+                  <div style={{ color: "#6b7280", fontSize: 12, marginTop: 8, fontWeight: 500 }}>
+                    {video.channel}
+                  </div>
+                  <div style={{ color: "#9ca3af", fontSize: 11, marginTop: 4 }}>
+                    {new Date(video.publishedAt).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <div style={{ color: "#6b7280", textAlign: "center", padding: "20px" }}>No video recommendations found for {skill}.</div>
+      )}
     </div>
   );
 }
@@ -373,9 +499,26 @@ export default function Dashboard() {
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", fontFamily: "Inter, Arial, sans-serif", backgroundColor: "#f5f7fb" }}>
-      {/* Sidebar */}
-      <div style={{ width: 260, backgroundColor: "#1f2937", color: "#e5e7eb", padding: 20 }}>
+    <div style={{ 
+      display: "flex", 
+      minHeight: "100vh", 
+      fontFamily: "Inter, Arial, sans-serif", 
+      backgroundColor: "#f5f7fb",
+      // Prevent horizontal scroll on the entire page
+      overflowX: "hidden"
+    }}>
+      {/* Sidebar - Fixed */}
+      <div style={{ 
+        width: 260, 
+        backgroundColor: "#1f2937", 
+        color: "#e5e7eb", 
+        padding: 20, 
+        position: "fixed",
+        height: "100vh",
+        left: 0,
+        top: 0,
+        overflowY: "auto"
+      }}>
         <div style={{ textAlign: "center", marginBottom: 24 }}>
           <div style={{ width: 80, height: 80, borderRadius: "50%", backgroundColor: "#374151", margin: "0 auto" }} />
           <h3 style={{ margin: "12px 0 4px" }}>{profile.name}</h3>
@@ -406,10 +549,28 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Main */}
-      <div style={{ flex: 1, padding: 24 }}>
+      {/* Main Content - Scrollable */}
+      <div style={{ 
+        flex: 1, 
+        padding: 24,
+        marginLeft: 300,
+        overflowY: "auto",
+        overflowX: "hidden", // Prevent horizontal scroll on main content
+        minHeight: "100vh",
+        // Ensure content doesn't exceed viewport width
+        maxWidth: "calc(100vw - 260px)",
+        boxSizing: "border-box"
+      }}>
         {/* Top summary */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 20 }}>
+        <div style={{ 
+          display: "grid", 
+          gridTemplateColumns: "repeat(3, 1fr)", 
+          gap: 16, 
+          marginBottom: 20,
+          // Ensure grid doesn't cause horizontal overflow
+          width: "100%",
+          boxSizing: "border-box"
+        }}>
           <div style={{ backgroundColor: "#111827", color: "#fff", borderRadius: 12, padding: 16 }}>
             <div style={{ opacity: 0.8, fontSize: 13 }}>Resumes Uploaded</div>
             <div style={{ fontSize: 28, fontWeight: 700 }}>{resumeFiles.length}</div>
@@ -548,7 +709,7 @@ export default function Dashboard() {
           <Section title="Roles Currently Working On">
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               {appliedRoles.length === 0 ? (
-                <div style={{ color: "#6b7280" }}>No Roles are being worked on yet</div>
+                <div style={{ color: "#6b7280" }}>No Roles are being worked on yet</div>
               ) : (
                 appliedRoles.map((r, i) => (
                   <span key={`${r}-${i}`} style={{ background: "#ecfdf5", color: "#065f46", padding: "6px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -639,6 +800,7 @@ export default function Dashboard() {
               </div>
             )}
           </Section>
+          
           <Section title="Project TODOs">
             {Array.isArray(filteredTodos) && filteredTodos.length > 0 ? (
               <ul style={{ margin: 0, paddingLeft: 18 }}>
@@ -671,7 +833,7 @@ export default function Dashboard() {
             )}
           </Section>
         </div>
-
+          
         {/* Project Guide */}
         <Section title="Project Guide">
           {Array.isArray(projectGuides) && projectGuides.length > 0 ? (
@@ -692,8 +854,59 @@ export default function Dashboard() {
           )}
         </Section>
 
+        {/* AI Recommendations Section */}
+        <Section title="🎯 Recommended Learning Videos">
+          {displayMissingSkills.length === 0 ? (
+            <div style={{ color: "#6b7280", textAlign: "center", padding: "40px 20px" }}>
+              {analysis?.noResume 
+                ? "Upload a resume to see which skills you need to learn and get video recommendations." 
+                : "No missing skills found. Add desired roles and upload resume to get video recommendations."}
+            </div>
+          ) : (
+            <div style={{ display: "grid", gap: 32 }}>
+              {displayMissingSkills.map((skill) => (
+                <div key={skill} style={{ 
+                  border: "1px solid #e5e7eb", 
+                  borderRadius: 16, 
+                  padding: 24, 
+                  backgroundColor: "white",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                  // Prevent this container from causing horizontal scroll
+                  overflow: "hidden"
+                }}>
+                  <div style={{ 
+                    fontWeight: 700, 
+                    marginBottom: 20, 
+                    color: "#1f2937", 
+                    fontSize: 20,
+                    paddingBottom: 12,
+                    borderBottom: "2px solid #e5e7eb",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8
+                  }}>
+                    <span style={{ 
+                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", 
+                      width: 32, 
+                      height: 32, 
+                      borderRadius: "50%", 
+                      display: "flex", 
+                      alignItems: "center", 
+                      justifyContent: "center",
+                      color: "white",
+                      fontSize: 16
+                    }}>🎯</span>
+                    {skill}
+                  </div>
+                  <AIRecommendations skill={skill} />
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+
         {/* Recommendations */}
-        <Section title="Recommendations">
+        <Section title="General Recommendations">
           {recommendations.length === 0 ? (
             <div style={{ color: "#6b7280" }}>Recommendations will appear here based on your desired roles.</div>
           ) : (
@@ -710,8 +923,6 @@ export default function Dashboard() {
             </div>
           )}
         </Section>
-        {/* Floating Chat Bubble - removed from main content */}
-
       </div>
 
       {/* Floating Chat Bubble */}

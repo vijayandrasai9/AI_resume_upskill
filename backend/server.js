@@ -8,7 +8,7 @@ const connectDB   = require("./config/db");
 const authRoutes  = require("./routes/auth");
 const userRoutes  = require("./routes/user");
 const apiRoutes   = require("./routes/api");
-// const chatRouter  = require("./routes/chat");
+const aiRecommendRoutes = require("./routes/aiRecommender"); // Fixed now
 
 const app = express();
 
@@ -30,6 +30,7 @@ app.get("/api/ping", (_, res) => res.json({ message: "pong" }));
 app.get("/api/health/ai", (_, res) => {
   res.json({
     openAiKeyLoaded: Boolean(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim()),
+    geminiKeyLoaded: Boolean(process.env.GEMINI_API_KEY && process.env.GEMINI_API_KEY.trim()),
     model: "gpt-3.5-turbo",
   });
 });
@@ -38,7 +39,7 @@ app.get("/api/health/ai", (_, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api", apiRoutes);
-// Legacy Gemini chat router removed; using /api/chat from api.js instead
+app.use("/api", aiRecommendRoutes); // Now this should work
 
 // Database + Server start
 connectDB();
