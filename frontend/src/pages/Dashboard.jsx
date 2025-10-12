@@ -58,12 +58,10 @@ function AIRecommendations({ skill }) {
               padding: "8px 4px 16px 4px",
               scrollbarWidth: "thin",
               scrollbarColor: "#cbd5e1 #f1f5f9",
-              // Prevent horizontal scrolling from affecting parent
               position: "relative",
               zIndex: 1
             }}
             onWheel={(e) => {
-              // Only handle horizontal wheel events, let vertical scroll pass through
               if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) {
                 e.stopPropagation();
               }
@@ -171,6 +169,8 @@ export default function Dashboard() {
   const [filteredTodos, setFilteredTodos] = useState([]);
   const [analysis, setAnalysis] = useState({ missingSkills: [], presentSkills: [], desiredRoles: [], noResume: false, presentProjects: [] });
   const [selectedAppliedRole, setSelectedAppliedRole] = useState("");
+  const [generatingProjects, setGeneratingProjects] = useState({});
+  const [projectGenerationStatus, setProjectGenerationStatus] = useState("");
 
   const fileInputRef = useRef(null);
   const token = useMemo(() => localStorage.getItem("token") || "", []);
@@ -218,6 +218,202 @@ export default function Dashboard() {
       console.error("Failed to fetch required skills:", err);
     }
   }, []);
+
+  // IMPROVED: Generate AI-powered project recommendations for ANY role
+  const generateProjectRecommendations = useCallback(async (role, skills) => {
+    if (!role) return;
+    
+    setGeneratingProjects(prev => ({ ...prev, [role]: true }));
+    setProjectGenerationStatus(`🔄 AI is analyzing the ${role} role and generating personalized project ideas...`);
+    
+    try {
+      const response = await fetch("/api/generate-projects", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          role,
+          requiredSkills: skills,
+          existingSkills: displayPresentSkills,
+          missingSkills: displayMissingSkills
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        if (Array.isArray(data.projects) && data.projects.length > 0) {
+          // Add new projects to the existing list
+          setProjectTodos(prev => {
+            const existingTitles = new Set(prev.map(p => p.title));
+            const newProjects = data.projects.filter(p => !existingTitles.has(p.title));
+            return [...prev, ...newProjects];
+          });
+          
+          setProjectGenerationStatus(`✅ AI generated ${data.projects.length} project ideas for ${role}`);
+          
+          // Record activity
+          await recordActivity("project_generated", `AI generated ${data.projects.length} project ideas for ${role} role`);
+        } else {
+          setProjectGenerationStatus(`❌ No projects generated for ${role}. Using fallback projects.`);
+          // Add fallback projects if AI returns empty
+          const fallbackProjects = getFallbackProjects(role, skills);
+          setProjectTodos(prev => [...prev, ...fallbackProjects]);
+        }
+      } else {
+        throw new Error("API response not OK");
+      }
+    } catch (error) {
+      console.error("Failed to generate project recommendations:", error);
+      setProjectGenerationStatus(`❌ AI generation failed for ${role}. Using fallback projects.`);
+      
+      // Add fallback projects on error
+      const fallbackProjects = getFallbackProjects(role, skills);
+      setProjectTodos(prev => [...prev, ...fallbackProjects]);
+    } finally {
+      setGeneratingProjects(prev => ({ ...prev, [role]: false }));
+      // Clear status after 5 seconds
+      setTimeout(() => setProjectGenerationStatus(""), 5000);
+    }
+  }, [token, displayPresentSkills, displayMissingSkills]);
+
+  // Fallback project generator for when AI fails
+  const getFallbackProjects = (role, skills) => {
+    const roleLower = role.toLowerCase();
+    
+    // Categorize role and generate appropriate projects
+    let projectTemplates = [];
+    
+    if (roleLower.includes('frontend') || roleLower.includes('web') || roleLower.includes('ui')) {
+      projectTemplates = [
+        {
+          title: `Responsive ${role} Portfolio`,
+          description: `Build a modern, responsive portfolio website showcasing ${role} skills with interactive elements`,
+          requiredSkills: skills.length > 0 ? skills : ["HTML", "CSS", "JavaScript", "Responsive Design"],
+          resources: [
+            {
+              title: "Modern CSS Guide",
+              url: "https://developer.mozilla.org/en-US/docs/Web/CSS",
+              type: "documentation"
+            }
+          ],
+          role: role,
+          difficulty: "intermediate",
+          aiGuideLink: `/api/project-guide?title=Responsive Portfolio&role=${encodeURIComponent(role)}`
+        }
+      ];
+    } else if (roleLower.includes('backend') || roleLower.includes('api') || roleLower.includes('server')) {
+      projectTemplates = [
+        {
+          title: `${role} API Service`,
+          description: `Develop a robust backend service with RESTful APIs, database integration, and authentication`,
+          requiredSkills: skills.length > 0 ? skills : ["API Design", "Database", "Authentication", "Security"],
+          resources: [
+            {
+              title: "REST API Best Practices",
+              url: "https://restfulapi.net/",
+              type: "documentation"
+            }
+          ],
+          role: role,
+          difficulty: "intermediate",
+          aiGuideLink: `/api/project-guide?title=API Service&role=${encodeURIComponent(role)}`
+        }
+      ];
+    } else if (roleLower.includes('data') || roleLower.includes('analyst') || roleLower.includes('scientist')) {
+      projectTemplates = [
+        {
+          title: `${role} Data Analysis Project`,
+          description: `Analyze real-world datasets to extract insights and create meaningful visualizations`,
+          requiredSkills: skills.length > 0 ? skills : ["Data Analysis", "Visualization", "Statistics", "Python/R"],
+          resources: [
+            {
+              title: "Data Science Projects",
+              url: "https://www.kaggle.com/",
+              type: "platform"
+            }
+          ],
+          role: role,
+          difficulty: "intermediate",
+          aiGuideLink: `/api/project-guide?title=Data Analysis&role=${encodeURIComponent(role)}`
+        }
+      ];
+    } else if (roleLower.includes('mobile') || roleLower.includes('android') || roleLower.includes('ios')) {
+      projectTemplates = [
+        {
+          title: `Cross-Platform ${role} App`,
+          description: `Create a mobile application that works across multiple platforms with native-like performance`,
+          requiredSkills: skills.length > 0 ? skills : ["Mobile Development", "UI/UX", "API Integration", "Performance"],
+          resources: [
+            {
+              title: "Mobile Development Guide",
+              url: "https://developer.android.com/",
+              type: "documentation"
+            }
+          ],
+          role: role,
+          difficulty: "intermediate",
+          aiGuideLink: `/api/project-guide?title=Mobile App&role=${encodeURIComponent(role)}`
+        }
+      ];
+    } else if (roleLower.includes('devops') || roleLower.includes('cloud') || roleLower.includes('sre')) {
+      projectTemplates = [
+        {
+          title: `${role} Infrastructure Project`,
+          description: `Build and automate cloud infrastructure with CI/CD pipelines and monitoring`,
+          requiredSkills: skills.length > 0 ? skills : ["Cloud Platforms", "Automation", "CI/CD", "Monitoring"],
+          resources: [
+            {
+              title: "DevOps Resources",
+              url: "https://aws.amazon.com/devops/",
+              type: "documentation"
+            }
+          ],
+          role: role,
+          difficulty: "advanced",
+          aiGuideLink: `/api/project-guide?title=Infrastructure&role=${encodeURIComponent(role)}`
+        }
+      ];
+    } else {
+      // Generic fallback for any role
+      projectTemplates = [
+        {
+          title: `Portfolio ${role} Project`,
+          description: `Build a comprehensive project to demonstrate ${role} skills and create a professional portfolio piece`,
+          requiredSkills: skills.length > 0 ? skills : ["Core Skills", "Problem Solving", "Documentation"],
+          resources: [
+            {
+              title: "Project Planning Guide",
+              url: "https://example.com/project-planning",
+              type: "tutorial"
+            }
+          ],
+          role: role,
+          difficulty: "intermediate",
+          aiGuideLink: `/api/project-guide?title=Portfolio Project&role=${encodeURIComponent(role)}`
+        },
+        {
+          title: `Real-world ${role} Challenge`,
+          description: `Solve a practical problem that mimics real industry challenges for ${role} positions`,
+          requiredSkills: skills.length > 0 ? skills : ["Analytical Thinking", "Technical Implementation", "Testing"],
+          resources: [
+            {
+              title: "Industry Best Practices",
+              url: "https://example.com/best-practices",
+              type: "documentation"
+            }
+          ],
+          role: role,
+          difficulty: "advanced",
+          aiGuideLink: `/api/project-guide?title=Real-world Challenge&role=${encodeURIComponent(role)}`
+        }
+      ];
+    }
+    
+    return projectTemplates;
+  };
 
   const refreshAnalysis = useCallback(async (headers) => {
     try {
@@ -448,11 +644,17 @@ export default function Dashboard() {
     setSelectedRole("");
   }
 
+  // IMPROVED: Function to mark role as applied and generate AI projects for ANY role
   function markApplied(role) {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     const nextApplied = Array.from(new Set([role, ...appliedRoles]));
     setAppliedRoles(nextApplied);
     setSelectedAppliedRole(role);
+    
+    // Generate AI-powered project recommendations for this role
+    const roleSkills = roleSkillsMap[role] || requiredSkills;
+    generateProjectRecommendations(role, roleSkills);
+
     (async () => {
       try {
         await persistRoles(desiredRoles, nextApplied);
@@ -504,7 +706,6 @@ export default function Dashboard() {
       minHeight: "100vh", 
       fontFamily: "Inter, Arial, sans-serif", 
       backgroundColor: "#f5f7fb",
-      // Prevent horizontal scroll on the entire page
       overflowX: "hidden"
     }}>
       {/* Sidebar - Fixed */}
@@ -555,9 +756,8 @@ export default function Dashboard() {
         padding: 24,
         marginLeft: 300,
         overflowY: "auto",
-        overflowX: "hidden", // Prevent horizontal scroll on main content
+        overflowX: "hidden",
         minHeight: "100vh",
-        // Ensure content doesn't exceed viewport width
         maxWidth: "calc(100vw - 260px)",
         boxSizing: "border-box"
       }}>
@@ -567,7 +767,6 @@ export default function Dashboard() {
           gridTemplateColumns: "repeat(3, 1fr)", 
           gap: 16, 
           marginBottom: 20,
-          // Ensure grid doesn't cause horizontal overflow
           width: "100%",
           boxSizing: "border-box"
         }}>
@@ -697,7 +896,21 @@ export default function Dashboard() {
               {desiredRoles.map((r) => (
                 <span key={r} style={{ background: "#eef2ff", color: "#3730a3", padding: "6px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 8 }}>
                   {r}
-                  <button onClick={() => { markApplied(r); }} style={{ fontSize: 12, cursor: "pointer", border: 0, background: "#111827", color: "#fff", borderRadius: 8, padding: "4px 8px" }}>select</button>
+                  <button 
+                    onClick={() => { markApplied(r); }} 
+                    disabled={generatingProjects[r]}
+                    style={{ 
+                      fontSize: 12, 
+                      cursor: generatingProjects[r] ? "not-allowed" : "pointer", 
+                      border: 0, 
+                      background: generatingProjects[r] ? "#9ca3af" : "#111827", 
+                      color: "#fff", 
+                      borderRadius: 8, 
+                      padding: "4px 8px" 
+                    }}
+                  >
+                    {generatingProjects[r] ? "..." : "select"}
+                  </button>
                   <button aria-label="Delete role" title="Delete" onClick={() => removeDesiredRole(r)} style={{ cursor: "pointer", border: 0, background: "transparent", color: "#6b7280", padding: 0 }}>
                     ×
                   </button>
@@ -714,6 +927,9 @@ export default function Dashboard() {
                 appliedRoles.map((r, i) => (
                   <span key={`${r}-${i}`} style={{ background: "#ecfdf5", color: "#065f46", padding: "6px 10px", borderRadius: 999, display: "inline-flex", alignItems: "center", gap: 8 }}>
                     {r}
+                    {generatingProjects[r] && (
+                      <span style={{ fontSize: 12, color: "#059669" }}>🔄 Generating projects...</span>
+                    )}
                     <button aria-label="Delete role" title="Delete" onClick={() => removeAppliedRole(i)} style={{ cursor: "pointer", border: 0, background: "transparent", color: "#047857", padding: 0 }}>
                       ×
                     </button>
@@ -723,6 +939,27 @@ export default function Dashboard() {
             </div>
           </Section>
         </div>
+
+        {/* Project Generation Status */}
+        {projectGenerationStatus && (
+          <div style={{ 
+            margin: "16px 0", 
+            padding: "12px 16px", 
+            borderRadius: 8, 
+            backgroundColor: projectGenerationStatus.includes("✅") ? "#dcfce7" : 
+                           projectGenerationStatus.includes("❌") ? "#fef2f2" : "#f0f9ff",
+            color: projectGenerationStatus.includes("✅") ? "#166534" : 
+                  projectGenerationStatus.includes("❌") ? "#dc2626" : "#1e40af",
+            border: `1px solid ${
+              projectGenerationStatus.includes("✅") ? "#bbf7d0" : 
+              projectGenerationStatus.includes("❌") ? "#fecaca" : "#bfdbfe"
+            }`,
+            fontSize: 14,
+            fontWeight: 500
+          }}>
+            {projectGenerationStatus}
+          </div>
+        )}
 
         {/* AI Skill Gap + Project TODOs */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
@@ -802,34 +1039,374 @@ export default function Dashboard() {
           </Section>
           
           <Section title="Project TODOs">
+            {/* Role Filter Dropdown */}
+            {appliedRoles.length > 0 && (
+              <div style={{ marginBottom: 16 }}>
+                <select 
+                  value={selectedAppliedRole} 
+                  onChange={(e) => setSelectedAppliedRole(e.target.value)}
+                  style={{ 
+                    border: "1px solid #d1d5db", 
+                    borderRadius: 8, 
+                    padding: "6px 10px",
+                    backgroundColor: "white",
+                    fontSize: 14
+                  }}
+                >
+                  <option value="">All Applied Roles</option>
+                  {appliedRoles.map(role => (
+                    <option key={role} value={role}>{role}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             {Array.isArray(filteredTodos) && filteredTodos.length > 0 ? (
-              <ul style={{ margin: 0, paddingLeft: 18 }}>
+              <ul style={{ margin: 0, paddingLeft: 0, listStyle: "none" }}>
                 {filteredTodos.map((t, i) => (
-                  <li key={i}>
-                    <div style={{ fontWeight: 600 }}>
-                      <a href={t.aiGuideLink || "#"} style={{ color: "#2563eb" }} target="_blank" rel="noreferrer">{t.title}</a>
+                  <li key={i} style={{ marginBottom: 16, padding: 16, border: "1px solid #e5e7eb", borderRadius: 12, backgroundColor: "#fafafa" }}>
+                    <div style={{ fontWeight: 600, marginBottom: 8, fontSize: 16 }}>
+                      <button
+                        onClick={async () => {
+                          try {
+                            // Generate detailed project guide using Gemini AI
+                            const response = await fetch(`/api/project-guide?title=${encodeURIComponent(t.title)}&role=${encodeURIComponent(t.role)}`, {
+                              headers: {
+                                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                              },
+                            });
+                            
+                            if (response.ok) {
+                              const guideData = await response.json();
+                              
+                              // Create a modal or new window with the guide
+                              const guideWindow = window.open('', '_blank', 'width=800,height=600,scrollbars=yes');
+                              guideWindow.document.write(`
+                                <!DOCTYPE html>
+                                <html>
+                                <head>
+                                  <title>${t.title} - Project Guide</title>
+                                  <style>
+                                    body { 
+                                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                                      margin: 0; 
+                                      padding: 20px; 
+                                      background: #f5f7fb;
+                                      color: #1f2937;
+                                    }
+                                    .container { 
+                                      max-width: 800px; 
+                                      margin: 0 auto; 
+                                      background: white;
+                                      padding: 30px;
+                                      border-radius: 12px;
+                                      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+                                    }
+                                    h1 { color: #1f2937; margin-bottom: 8px; }
+                                    h2 { color: #374151; margin-top: 24px; margin-bottom: 12px; }
+                                    h3 { color: #4b5563; margin-top: 20px; }
+                                    .role { color: #059669; font-weight: 600; margin-bottom: 20px; }
+                                    .overview { 
+                                      background: #f0f9ff; 
+                                      padding: 16px; 
+                                      border-radius: 8px; 
+                                      margin: 16px 0; 
+                                      border-left: 4px solid #2563eb;
+                                    }
+                                    .steps { margin: 20px 0; }
+                                    .step { 
+                                      background: white; 
+                                      margin: 12px 0; 
+                                      padding: 16px; 
+                                      border-radius: 8px;
+                                      border: 1px solid #e5e7eb;
+                                    }
+                                    .step-title { 
+                                      font-weight: 600; 
+                                      color: #1f2937; 
+                                      margin-bottom: 8px;
+                                      display: flex;
+                                      align-items: center;
+                                      gap: 8px;
+                                    }
+                                    .step-title:before {
+                                      content: "📋";
+                                      font-size: 16px;
+                                    }
+                                    .technologies, .best-practices {
+                                      background: #f8fafc;
+                                      padding: 12px;
+                                      border-radius: 6px;
+                                      margin: 12px 0;
+                                    }
+                                    .resources { margin: 16px 0; }
+                                    .resource-item { 
+                                      margin: 8px 0; 
+                                      padding: 8px 12px;
+                                      background: #ecfdf5;
+                                      border-radius: 6px;
+                                      border-left: 3px solid #059669;
+                                    }
+                                    .resource-item a { 
+                                      color: #059669; 
+                                      text-decoration: none;
+                                      font-weight: 500;
+                                    }
+                                    .resource-item a:hover { text-decoration: underline; }
+                                    .loading { 
+                                      text-align: center; 
+                                      padding: 40px; 
+                                      color: #6b7280; 
+                                    }
+                                    .ai-note {
+                                      background: #fef3c7;
+                                      padding: 12px;
+                                      border-radius: 6px;
+                                      margin: 16px 0;
+                                      border-left: 3px solid #d97706;
+                                      font-size: 14px;
+                                    }
+                                  </style>
+                                </head>
+                                <body>
+                                  <div class="container">
+                                    <h1>${guideData.title || t.title}</h1>
+                                    <div class="role">🎯 Target Role: ${guideData.role || t.role}</div>
+                                    
+                                    ${guideData.note ? `<div class="ai-note">${guideData.note}</div>` : ''}
+                                    
+                                    ${guideData.overview ? `
+                                      <div class="overview">
+                                        <h2>📖 Project Overview</h2>
+                                        <p>${guideData.overview}</p>
+                                      </div>
+                                    ` : ''}
+                                    
+                                    ${guideData.steps && guideData.steps.length > 0 ? `
+                                      <div class="steps">
+                                        <h2>🚀 Step-by-Step Implementation</h2>
+                                        ${guideData.steps.map((step, index) => `
+                                          <div class="step">
+                                            <div class="step-title">${step.phase || `Phase ${index + 1}`}</div>
+                                            ${step.estimatedTime ? `<div style="color: #6b7280; font-size: 14px; margin-bottom: 8px;">⏱️ Estimated: ${step.estimatedTime}</div>` : ''}
+                                            <ul>
+                                              ${(step.tasks || []).map(task => `<li>${task}</li>`).join('')}
+                                            </ul>
+                                          </div>
+                                        `).join('')}
+                                      </div>
+                                    ` : `
+                                      <div class="steps">
+                                        <h2>🚀 Implementation Steps</h2>
+                                        <div class="step">
+                                          <div class="step-title">Phase 1: Planning & Setup</div>
+                                          <ul>
+                                            <li>Define project requirements and scope</li>
+                                            <li>Set up development environment</li>
+                                            <li>Create project structure and initialize version control</li>
+                                          </ul>
+                                        </div>
+                                        <div class="step">
+                                          <div class="step-title">Phase 2: Core Development</div>
+                                          <ul>
+                                            <li>Implement main features and functionality</li>
+                                            <li>Write clean, maintainable code</li>
+                                            <li>Add error handling and validation</li>
+                                          </ul>
+                                        </div>
+                                        <div class="step">
+                                          <div class="step-title">Phase 3: Testing & Refinement</div>
+                                          <ul>
+                                            <li>Test all functionality thoroughly</li>
+                                            <li>Fix bugs and optimize performance</li>
+                                            <li>Get feedback and make improvements</li>
+                                          </ul>
+                                        </div>
+                                        <div class="step">
+                                          <div class="step-title">Phase 4: Deployment & Documentation</div>
+                                          <ul>
+                                            <li>Deploy to production environment</li>
+                                            <li>Write comprehensive documentation</li>
+                                            <li>Update your portfolio with the completed project</li>
+                                          </ul>
+                                        </div>
+                                      </div>
+                                    `}
+                                    
+                                    ${guideData.technologies && guideData.technologies.length > 0 ? `
+                                      <div class="technologies">
+                                        <h2>🛠️ Technologies & Tools</h2>
+                                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                          ${guideData.technologies.map(tech => `
+                                            <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 12px;">
+                                              ${tech}
+                                            </span>
+                                          `).join('')}
+                                        </div>
+                                      </div>
+                                    ` : t.requiredSkills && t.requiredSkills.length > 0 ? `
+                                      <div class="technologies">
+                                        <h2>🛠️ Required Skills & Technologies</h2>
+                                        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px;">
+                                          ${t.requiredSkills.map(skill => `
+                                            <span style="background: #e0e7ff; color: #3730a3; padding: 4px 8px; border-radius: 999px; font-size: 12px;">
+                                              ${skill}
+                                            </span>
+                                          `).join('')}
+                                        </div>
+                                      </div>
+                                    ` : ''}
+                                    
+                                    ${guideData.bestPractices && guideData.bestPractices.length > 0 ? `
+                                      <div class="best-practices">
+                                        <h2>✅ Best Practices</h2>
+                                        <ul>
+                                          ${guideData.bestPractices.map(practice => `<li>${practice}</li>`).join('')}
+                                        </ul>
+                                      </div>
+                                    ` : ''}
+                                    
+                                    <div class="resources">
+                                      <h2>📚 Learning Resources</h2>
+                                      ${(guideData.resources && guideData.resources.length > 0 ? guideData.resources : t.resources || []).map(resource => `
+                                        <div class="resource-item">
+                                          <a href="${resource.url}" target="_blank" rel="noopener noreferrer">
+                                            ${resource.title || resource.type} - ${resource.type || 'Resource'}
+                                          </a>
+                                        </div>
+                                      `).join('')}
+                                      ${(!guideData.resources || guideData.resources.length === 0) && (!t.resources || t.resources.length === 0) ? `
+                                        <div class="resource-item">
+                                          <a href="https://developer.mozilla.org" target="_blank" rel="noopener noreferrer">
+                                            MDN Web Docs - Documentation
+                                          </a>
+                                        </div>
+                                        <div class="resource-item">
+                                          <a href="https://stackoverflow.com" target="_blank" rel="noopener noreferrer">
+                                            Stack Overflow - Community Help
+                                          </a>
+                                        </div>
+                                      ` : ''}
+                                    </div>
+                                    
+                                    <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #6b7280; font-size: 14px;">
+                                      <p>🚀 <strong>Pro Tip:</strong> Break down this project into smaller tasks and tackle them one at a time. Don't forget to document your progress!</p>
+                                    </div>
+                                  </div>
+                                </body>
+                                </html>
+                              `);
+                            }
+                          } catch (error) {
+                            console.error('Error loading project guide:', error);
+                            // Fallback: open simple guide
+                            window.open(`/api/project-guide?title=${encodeURIComponent(t.title)}&role=${encodeURIComponent(t.role)}`, '_blank');
+                          }
+                        }}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#2563eb",
+                          textDecoration: "none",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          fontWeight: 600,
+                          textAlign: "left",
+                          padding: 0,
+                          fontFamily: "inherit"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.textDecoration = "underline";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.textDecoration = "none";
+                        }}
+                      >
+                        {t.title} 🔗
+                      </button>
                     </div>
-                    {Array.isArray(t.requiredSkills) && t.requiredSkills.length > 0 && (
-                      <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 4 }}>
-                        {t.requiredSkills.map((s) => (
-                          <span key={s} style={{ background: "#eef2ff", color: "#3730a3", padding: "4px 8px", borderRadius: 999, fontSize: 12 }}>{s}</span>
-                        ))}
+                    
+                    {t.description && (
+                      <div style={{ color: "#6b7280", fontSize: 14, marginBottom: 12, lineHeight: 1.5 }}>
+                        {t.description}
                       </div>
                     )}
+                    
+                    {t.role && (
+                      <div style={{ fontSize: 13, color: "#059669", marginBottom: 12, fontWeight: 500 }}>
+                        <strong>🎯 Role:</strong> {t.role}
+                      </div>
+                    )}
+                    
+                    {Array.isArray(t.requiredSkills) && t.requiredSkills.length > 0 && (
+                      <div style={{ marginBottom: 12 }}>
+                        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6, fontWeight: 500 }}>
+                          🛠️ Skills needed:
+                        </div>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {t.requiredSkills.map((s) => (
+                            <span key={s} style={{ 
+                              background: "#eef2ff", 
+                              color: "#3730a3", 
+                              padding: "4px 8px", 
+                              borderRadius: 999, 
+                              fontSize: 12,
+                              fontWeight: 500
+                            }}>
+                              {s}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    
                     {Array.isArray(t.resources) && t.resources.length > 0 && (
-                      <ul style={{ margin: "6px 0 0 18px" }}>
-                        {t.resources.map((r, ri) => (
-                          <li key={ri}>
-                            <a href={r.url} target="_blank" rel="noreferrer" style={{ color: "#059669" }}>{r.title || r.type}</a>
-                          </li>
-                        ))}
-                      </ul>
+                      <div>
+                        <div style={{ fontSize: 13, color: "#6b7280", marginBottom: 6, fontWeight: 500 }}>
+                          📚 Quick resources:
+                        </div>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          {t.resources.slice(0, 2).map((r, ri) => (
+                            <a 
+                              key={ri} 
+                              href={r.url} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ 
+                                color: "#059669", 
+                                fontSize: 12,
+                                textDecoration: "none",
+                                padding: "4px 8px",
+                                borderRadius: 4,
+                                backgroundColor: "#f0fdf4",
+                                border: "1px solid #dcfce7"
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = "#dcfce7";
+                                e.target.style.textDecoration = "underline";
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = "#f0fdf4";
+                                e.target.style.textDecoration = "none";
+                              }}
+                            >
+                              📖 {r.title || r.type}
+                            </a>
+                          ))}
+                        </div>
+                      </div>
                     )}
                   </li>
                 ))}
               </ul>
             ) : (
-              <div style={{ color: "#6b7280" }}>Project ideas will appear here based on your applied roles and resume skills.</div>
+              <div style={{ color: "#6b7280", textAlign: "center", padding: "40px 20px" }}>
+                {appliedRoles.length === 0 
+                  ? "🎯 Select roles to work on to get AI-powered project recommendations." 
+                  : Object.values(generatingProjects).some(status => status)
+                    ? "🔄 AI is analyzing your roles and generating personalized project ideas..." 
+                    : "📝 No project recommendations found. Try selecting different roles or check back later."}
+              </div>
             )}
           </Section>
         </div>
@@ -871,7 +1448,6 @@ export default function Dashboard() {
                   padding: 24, 
                   backgroundColor: "white",
                   boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                  // Prevent this container from causing horizontal scroll
                   overflow: "hidden"
                 }}>
                   <div style={{ 
@@ -910,7 +1486,7 @@ export default function Dashboard() {
           {recommendations.length === 0 ? (
             <div style={{ color: "#6b7280" }}>Recommendations will appear here based on your desired roles.</div>
           ) : (
-            <div style={{ display: "grid", gap: 10 }}>
+            <div style={{ display: "grid", gap: 5 }}>
               {recommendations.map((rec, i) => (
                 <div key={i} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
                   <div style={{ fontWeight: 600 }}>{rec.title}</div>
@@ -931,7 +1507,7 @@ export default function Dashboard() {
   );
 }
 
-// Floating Chat Bubble Component
+// Floating Chat Bubble Component (keep the same as before)
 function FloatingChatBubble() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([

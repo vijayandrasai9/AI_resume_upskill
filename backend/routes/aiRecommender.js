@@ -32,7 +32,7 @@ router.get("/ai-recommendations", async (req, res) => {
         const searchQuery = `${trimmedSkill} programming tutorial learn course`;
         
         const response = await fetch(
-          `${YOUTUBE_API_URL}?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=10&order=relevance&key=${youtubeApiKey}`
+          `${YOUTUBE_API_URL}?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=6&order=relevance&key=${youtubeApiKey}`
         );
 
         if (!response.ok) {
@@ -98,7 +98,7 @@ router.get("/skill-videos", async (req, res) => {
     const searchQuery = `${skill} programming tutorial learn course`;
     
     const response = await fetch(
-      `${YOUTUBE_API_URL}?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=10&order=relevance&key=${youtubeApiKey}`
+      `${YOUTUBE_API_URL}?part=snippet&type=video&q=${encodeURIComponent(searchQuery)}&maxResults=6&order=relevance&key=${youtubeApiKey}`
     );
 
     if (!response.ok) {

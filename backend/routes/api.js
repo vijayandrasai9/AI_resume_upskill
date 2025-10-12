@@ -96,6 +96,27 @@ router.post("/roles/skills", (req, res) => {
   }
 });
 
+// NEW: AI Project Generation Endpoints
+const { generateProjects } = require("../controllers/aiController"); // Add this import
+
+// Generate AI-powered project recommendations for a specific role
+router.post("/generate-projects", protect, generateProjects);
+
+// Get detailed project guide (optional - you can add this later)
+router.get("/project-guide", protect, (req, res) => {
+  const { title, role } = req.query;
+  // This would typically generate or fetch a detailed project guide
+  res.json({
+    title,
+    role,
+    guide: `Detailed guide for ${title} (${role}) will be generated here.`,
+    steps: [
+      "Step 1: Project setup and planning",
+      "Step 2: Core functionality implementation", 
+      "Step 3: Testing and refinement",
+      "Step 4: Deployment and documentation"
+    ]
+  });
+});
+
 module.exports = router;
-
-
