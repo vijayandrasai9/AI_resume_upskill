@@ -525,29 +525,46 @@ export default function Dashboard() {
     };
     fetchAll();
   }, [token, fetchRequiredSkills, refreshAnalysis]);
+// Auto-generate projects when a role is selected in dropdown
+useEffect(() => {
+  // SIMPLIFIED Filtering - Show projects based on role only, not skills
+  const presentProjects = (analysis?.presentProjects || []).map((p) => String(p).toLowerCase());
+  
+  const result = (projectTodos || [])
+    .filter((t) => {
+      if (selectedAppliedRole) {
+        const tr = String(t.role || "").toLowerCase();
+        const selectedRoleLower = String(selectedAppliedRole).toLowerCase();
+        return tr.includes(selectedRoleLower) || 
+               selectedRoleLower.includes(tr) ||
+               tr === selectedRoleLower;
+      }
+      return true;
+    })
+    .filter((t) => {
+      // Only filter out projects that exactly match existing project titles
+      const title = String(t.title || "").toLowerCase();
+      return !presentProjects.some((proj) => title.includes(proj) || proj.includes(title));
+    });
+  
+  setFilteredTodos(result);
+}, [projectTodos, analysis, selectedAppliedRole]);
 
-  useEffect(() => {
-    // Filter project TODOs
-    const present = new Set((analysis?.presentSkills || []).map((s) => String(s).toLowerCase()));
-    const presentProjects = (analysis?.presentProjects || []).map((p) => String(p).toLowerCase());
-    const result = (projectTodos || [])
-      .filter((t) => {
-        if (selectedAppliedRole) {
-          const tr = String(t.role || "").toLowerCase();
-          return tr.includes(String(selectedAppliedRole).toLowerCase());
-        }
-        return true;
-      })
-      .filter((t) => {
-        if (!Array.isArray(t.requiredSkills) || t.requiredSkills.length === 0) return true;
-        return t.requiredSkills.some((s) => !present.has(String(s).toLowerCase()));
-      })
-      .filter((t) => {
-        const title = String(t.title || "").toLowerCase();
-        return !presentProjects.some((proj) => title.includes(proj) || proj.includes(title));
-      });
-    setFilteredTodos(result);
-  }, [projectTodos, analysis, selectedAppliedRole]);
+useEffect(() => {
+  if (selectedAppliedRole && appliedRoles.includes(selectedAppliedRole)) {
+    // Check if we already have projects for this role
+    const hasProjectsForRole = projectTodos && projectTodos.some(project => 
+      project.role && String(project.role).toLowerCase() === selectedAppliedRole.toLowerCase()
+    );
+    
+    // If no projects exist for this role, generate them automatically
+    if (!hasProjectsForRole && !generatingProjects[selectedAppliedRole]) {
+      console.log(`🚀 Auto-generating projects for: ${selectedAppliedRole}`);
+      const roleSkills = roleSkillsMap[selectedAppliedRole] || requiredSkills;
+      generateProjectRecommendations(selectedAppliedRole, roleSkills);
+    }
+  }
+}, [selectedAppliedRole, appliedRoles, projectTodos, generatingProjects, roleSkillsMap, requiredSkills, generateProjectRecommendations]);
 
   async function handleUploadResume(e) {
     const file = e.target.files?.[0];
@@ -1399,15 +1416,30 @@ export default function Dashboard() {
                   </li>
                 ))}
               </ul>
-            ) : (
-              <div style={{ color: "#6b7280", textAlign: "center", padding: "40px 20px" }}>
-                {appliedRoles.length === 0 
-                  ? "🎯 Select roles to work on to get AI-powered project recommendations." 
-                  : Object.values(generatingProjects).some(status => status)
-                    ? "🔄 AI is analyzing your roles and generating personalized project ideas..." 
-                    : "📝 No project recommendations found. Try selecting different roles or check back later."}
-              </div>
-            )}
+           ) : (
+            <div style={{ color: "#6b7280", textAlign: "center", padding: "40px 20px" }}>
+              {appliedRoles.length === 0 ? (
+                "🎯 Select roles to work on to get AI-powered project recommendations."
+              ) : Object.values(generatingProjects).some(status => status) ? (
+                <div>
+                  <div style={{ fontSize: 16, marginBottom: 8 }}>🔄 AI is generating personalized project ideas...</div>
+                  <div style={{ fontSize: 12 }}>This may take a few seconds</div>
+                </div>
+              ) : selectedAppliedRole ? (
+                <div>
+                  <div style={{ fontSize: 16, marginBottom: 8 }}>
+                    📝 Auto-generating projects for "{selectedAppliedRole}"...
+                  </div>
+                  <div style={{ fontSize: 12 }}>AI is creating personalized project ideas for you</div>
+                </div>
+              ) : (
+                <div>
+                  <div style={{ fontSize: 16, marginBottom: 8 }}>📝 Select a role to generate projects</div>
+                  <div style={{ fontSize: 12 }}>Choose a role from the dropdown above</div>
+                </div>
+              )}
+            </div>
+          )}
           </Section>
         </div>
           
@@ -1482,23 +1514,350 @@ export default function Dashboard() {
         </Section>
 
         {/* Recommendations */}
-        <Section title="General Recommendations">
-          {recommendations.length === 0 ? (
-            <div style={{ color: "#6b7280" }}>Recommendations will appear here based on your desired roles.</div>
-          ) : (
-            <div style={{ display: "grid", gap: 5 }}>
-              {recommendations.map((rec, i) => (
-                <div key={i} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 12 }}>
-                  <div style={{ fontWeight: 600 }}>{rec.title}</div>
-                  <div style={{ color: "#6b7280", fontSize: 13 }}>{rec.summary}</div>
-                  {rec.link ? (
-                    <a href={rec.link} target="_blank" rel="noreferrer" style={{ color: "#2563eb" }}>Open</a>
-                  ) : null}
-                </div>
-              ))}
+        {/* General Career Development Resources */}
+<Section title="🎯 Essential Career Development Resources">
+  <div style={{ display: "grid", gap: 16 }}>
+    {/* Communication Skills */}
+    <div style={{ 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 20, 
+      backgroundColor: "#fafafa" 
+    }}>
+      <h4 style={{ margin: "0 0 16px 0", color: "#1f2937", fontSize: "18px", display: "flex", alignItems: "center", gap: 8 }}>
+        🗣️ Communication & Soft Skills
+      </h4>
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "8px 4px" }}>
+        {[
+          {
+            title: "How to speak so that people want to listen",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=eIho2S0ZahI",
+            thumbnail: "https://img.youtube.com/vi/eIho2S0ZahI/mqdefault.jpg"
+          },
+          {
+            title: "The power of listening | William Ury",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=saXfavo1OQo",
+            thumbnail: "https://img.youtube.com/vi/saXfavo1OQo/mqdefault.jpg"
+          },
+          {
+            title: "How to have difficult conversations",
+            channel: "Harvard Business Review",
+            url: "https://www.youtube.com/watch?v=67GYM7dlPrg",
+            thumbnail: "https://img.youtube.com/vi/67GYM7dlPrg/mqdefault.jpg"
+          }
+        ].map((video, index) => (
+          <div key={index} style={{ 
+            flex: "0 0 auto",
+            width: 240,
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            overflow: "hidden",
+            backgroundColor: "white",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}>
+            <img 
+              src={video.thumbnail} 
+              alt={video.title}
+              style={{ 
+                width: "100%", 
+                height: 135, 
+                objectFit: "cover" 
+              }}
+            />
+            <div style={{ padding: 12 }}>
+              <a 
+                href={video.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: "#2563eb", 
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden"
+                }}
+              >
+                {video.title}
+              </a>
+              <div style={{ color: "#6b7280", fontSize: 11, marginTop: 6 }}>
+                {video.channel}
+              </div>
             </div>
-          )}
-        </Section>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Career Planning & Growth */}
+    <div style={{ 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 20, 
+      backgroundColor: "#fafafa" 
+    }}>
+      <h4 style={{ margin: "0 0 16px 0", color: "#1f2937", fontSize: "18px", display: "flex", alignItems: "center", gap: 8 }}>
+        🚀 Career Planning & Growth
+      </h4>
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "8px 4px" }}>
+        {[
+          {
+            title: "How to find and do work you love",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=jpe-LKn-4gM",
+            thumbnail: "https://img.youtube.com/vi/jpe-LKn-4gM/mqdefault.jpg"
+          },
+          {
+            title: "The career advice you probably didn't get",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=ww1L-aaNxqI",
+            thumbnail: "https://img.youtube.com/vi/ww1L-aaNxqI/mqdefault.jpg"
+          },
+          {
+            title: "How to design your career path",
+            channel: "Harvard Business Review",
+            url: "https://www.youtube.com/watch?v=3z_44pS1p-o",
+            thumbnail: "https://img.youtube.com/vi/3z_44pS1p-o/mqdefault.jpg"
+          }
+        ].map((video, index) => (
+          <div key={index} style={{ 
+            flex: "0 0 auto",
+            width: 240,
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            overflow: "hidden",
+            backgroundColor: "white",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}>
+            <img 
+              src={video.thumbnail} 
+              alt={video.title}
+              style={{ 
+                width: "100%", 
+                height: 135, 
+                objectFit: "cover" 
+              }}
+            />
+            <div style={{ padding: 12 }}>
+              <a 
+                href={video.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: "#2563eb", 
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden"
+                }}
+              >
+                {video.title}
+              </a>
+              <div style={{ color: "#6b7280", fontSize: 11, marginTop: 6 }}>
+                {video.channel}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Interview & Job Search */}
+    <div style={{ 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 20, 
+      backgroundColor: "#fafafa" 
+    }}>
+      <h4 style={{ margin: "0 0 16px 0", color: "#1f2937", fontSize: "18px", display: "flex", alignItems: "center", gap: 8 }}>
+        💼 Interview & Job Search
+      </h4>
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "8px 4px" }}>
+        {[
+          {
+            title: "How to ace a job interview",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=5v-wyR5kpLc",
+            thumbnail: "https://img.youtube.com/vi/5v-wyR5kpLc/mqdefault.jpg"
+          },
+          {
+            title: "The secret to getting a job with no experience",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=woaFnl-srU0",
+            thumbnail: "https://img.youtube.com/vi/woaFnl-srU0/mqdefault.jpg"
+          },
+          {
+            title: "How to write a great resume",
+            channel: "Harvard Business Review",
+            url: "https://www.youtube.com/watch?v=8C5T1fZ32hU",
+            thumbnail: "https://img.youtube.com/vi/8C5T1fZ32hU/mqdefault.jpg"
+          }
+        ].map((video, index) => (
+          <div key={index} style={{ 
+            flex: "0 0 auto",
+            width: 240,
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            overflow: "hidden",
+            backgroundColor: "white",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}>
+            <img 
+              src={video.thumbnail} 
+              alt={video.title}
+              style={{ 
+                width: "100%", 
+                height: 135, 
+                objectFit: "cover" 
+              }}
+            />
+            <div style={{ padding: 12 }}>
+              <a 
+                href={video.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: "#2563eb", 
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden"
+                }}
+              >
+                {video.title}
+              </a>
+              <div style={{ color: "#6b7280", fontSize: 11, marginTop: 6 }}>
+                {video.channel}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* Personal Development */}
+    <div style={{ 
+      border: "1px solid #e5e7eb", 
+      borderRadius: 12, 
+      padding: 20, 
+      backgroundColor: "#fafafa" 
+    }}>
+      <h4 style={{ margin: "0 0 16px 0", color: "#1f2937", fontSize: "18px", display: "flex", alignItems: "center", gap: 8 }}>
+        🌟 Personal Development
+      </h4>
+      <div style={{ display: "flex", gap: 16, overflowX: "auto", padding: "8px 4px" }}>
+        {[
+          {
+            title: "The power of believing that you can improve",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=_X0mgOOSpLU",
+            thumbnail: "https://img.youtube.com/vi/_X0mgOOSpLU/mqdefault.jpg"
+          },
+          {
+            title: "How to manage your time more effectively",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=iONDebHX9qk",
+            thumbnail: "https://img.youtube.com/vi/iONDebHX9qk/mqdefault.jpg"
+          },
+          {
+            title: "How to stay calm under pressure",
+            channel: "TED",
+            url: "https://www.youtube.com/watch?v=ZxUjGCRq_0I",
+            thumbnail: "https://img.youtube.com/vi/ZxUjGCRq_0I/mqdefault.jpg"
+          }
+        ].map((video, index) => (
+          <div key={index} style={{ 
+            flex: "0 0 auto",
+            width: 240,
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            overflow: "hidden",
+            backgroundColor: "white",
+            transition: "transform 0.2s ease, box-shadow 0.2s ease"
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = "translateY(-2px)";
+            e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = "translateY(0)";
+            e.currentTarget.style.boxShadow = "none";
+          }}>
+            <img 
+              src={video.thumbnail} 
+              alt={video.title}
+              style={{ 
+                width: "100%", 
+                height: 135, 
+                objectFit: "cover" 
+              }}
+            />
+            <div style={{ padding: 12 }}>
+              <a 
+                href={video.url} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{ 
+                  color: "#2563eb", 
+                  textDecoration: "none",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  lineHeight: 1.4,
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden"
+                }}
+              >
+                {video.title}
+              </a>
+              <div style={{ color: "#6b7280", fontSize: 11, marginTop: 6 }}>
+                {video.channel}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</Section>
       </div>
 
       {/* Floating Chat Bubble */}
