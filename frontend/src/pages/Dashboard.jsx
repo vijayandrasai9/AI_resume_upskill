@@ -1120,7 +1120,7 @@ export default function Dashboard() {
     }}>
       {/* Enhanced Sidebar */}
       <div style={{ 
-        width: 280, 
+        width: 200, 
         background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)", 
         color: "#e2e8f0", 
         padding: 24, 
@@ -1179,48 +1179,20 @@ export default function Dashboard() {
                 e.target.style.transform = "translateY(0)";
               }}
             >
-              <span>🚪</span>
+              <span></span>
               Log Out
             </button>
           </div>
         </div>
 
-        {/* Sidebar Navigation */}
-        <nav style={{ marginTop: 32 }}>
-          {['Dashboard', 'Skills', 'Projects', 'Resources', 'Settings'].map((item) => (
-            <div
-              key={item}
-              style={{
-                padding: "12px 16px",
-                borderRadius: 12,
-                marginBottom: 8,
-                cursor: "pointer",
-                transition: "all 0.2s ease",
-                background: item === 'Dashboard' ? 'rgba(255,255,255,0.1)' : 'transparent',
-                border: item === 'Dashboard' ? '1px solid rgba(255,255,255,0.2)' : '1px solid transparent'
-              }}
-              onMouseEnter={(e) => {
-                if (item !== 'Dashboard') {
-                  e.currentTarget.style.background = 'rgba(255,255,255,0.05)';
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (item !== 'Dashboard') {
-                  e.currentTarget.style.background = 'transparent';
-                }
-              }}
-            >
-              <span style={{ fontWeight: 600 }}>{item}</span>
-            </div>
-          ))}
-        </nav>
+        
       </div>
 
       {/* Enhanced Main Content */}
       <div style={{ 
         flex: 1, 
         padding: 32,
-        marginLeft: 320,
+        marginLeft: 250,
         overflowY: "auto",
         overflowX: "hidden",
         minHeight: "100vh",
@@ -1414,44 +1386,8 @@ export default function Dashboard() {
         </Section>
 
         {/* Profile & Skills Grid */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
-          <Section 
-            title="Profile Overview" 
-            gradient="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-          >
-            <div style={{ display: "grid", gap: 16 }}>
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 12,
-                padding: 12,
-                background: "#f8fafc",
-                borderRadius: 12
-              }}>
-                <div style={{ fontSize: 20 }}>👤</div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Name</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: "#1e293b" }}>{profile.name}</div>
-                </div>
-              </div>
-              <div style={{ 
-                display: "flex", 
-                alignItems: "center", 
-                gap: 12,
-                padding: 12,
-                background: "#f8fafc",
-                borderRadius: 12
-              }}>
-                <div style={{ fontSize: 20 }}>📧</div>
-                <div>
-                  <div style={{ fontSize: 12, color: "#64748b", fontWeight: 600 }}>Email</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: "#1e293b" }}>{profile.email}</div>
-                </div>
-              </div>
-            </div>
-          </Section>
-
-          <Section 
+        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 24 }}>
+        <Section 
             title="Detected Skills" 
             gradient="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
           >
@@ -2425,14 +2361,14 @@ export default function Dashboard() {
                 }}>
                   <span style={{ 
                     background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", 
-                    width: 40, 
-                    height: 40, 
+                    width: 10, 
+                    height: 10, 
                     borderRadius: "50%", 
                     display: "flex", 
                     alignItems: "center", 
                     justifyContent: "center",
                     color: "white",
-                    fontSize: 18
+                    fontSize: 14
                   }}>🎯</span>
                   Master {skill}
                 </div>
