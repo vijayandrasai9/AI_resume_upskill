@@ -1264,28 +1264,26 @@ export default function Dashboard() {
             value={resumeFiles.length} 
             icon="📄"
             color="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-            trend={12}
           />
           <StatsCard 
             title="Desired Roles" 
             value={desiredRoles.length} 
             icon="🎯"
             color="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
-            trend={8}
+    
           />
           <StatsCard 
-            title="Active Projects" 
+            title="Roles in Progress" 
             value={appliedRoles.length} 
             icon="🚀"
             color="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
-            trend={15}
+  
           />
           <StatsCard 
             title="Skills Learned" 
             value={profile.resumeDetectedSkills.length} 
             icon="⭐"
             color="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
-            trend={23}
           />
         </div>
 
@@ -1565,7 +1563,7 @@ export default function Dashboard() {
           </Section>
 
           <Section 
-  title="Active Projects" 
+  title="Roles in Progress" 
   gradient="linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)"
 >
   <div style={{ 
@@ -2385,66 +2383,71 @@ export default function Dashboard() {
         </div>
 
         {/* Enhanced Learning Resources Section */}
-        <Section 
-          title="Personalized Learning Path" 
-          gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
-        >
-          {displayMissingSkills.length === 0 ? (
-            <div style={{ 
-              textAlign: "center", 
-              padding: "40px 20px", 
-              color: "#64748b",
-              background: "#f8fafc",
-              borderRadius: 12,
-              border: "2px dashed #e2e8f0"
-            }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
-              <div>{analysis?.noResume 
-                ? "Upload a resume to discover skills to learn" 
-                : "Add desired roles to see learning recommendations"}</div>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gap: 24 }}>
-              {displayMissingSkills.map((skill) => (
-                <div key={skill} style={{ 
-                  border: "1px solid #e2e8f0", 
-                  borderRadius: 16, 
-                  padding: 24, 
-                  backgroundColor: "white",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
-                  overflow: "hidden"
+              <Section 
+        title="Personalized Learning Path" 
+        gradient="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+      >
+        {displayMissingSkills.length === 0 ? (
+          <div style={{ 
+            textAlign: "center", 
+            padding: "40px 20px", 
+            color: "#64748b",
+            background: "#f8fafc",
+            borderRadius: 12,
+            border: "2px dashed #e2e8f0"
+          }}>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🎯</div>
+            <div>{analysis?.noResume 
+              ? "Upload a resume to discover skills to learn" 
+              : "Add desired roles to see learning recommendations"}</div>
+          </div>
+        ) : (
+          <div style={{ display: "grid", gap: 24 }}>
+            {displayMissingSkills.map((skill) => (
+              <div key={skill} style={{ 
+                border: "1px solid #e2e8f0", 
+                borderRadius: 16, 
+                padding: 24, 
+                backgroundColor: "white",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                overflow: "hidden"
+              }}>
+                <div style={{ 
+                  fontWeight: 700, 
+                  marginBottom: 20, 
+                  color: "#1e293b", 
+                  fontSize: 20,
+                  paddingBottom: 16,
+                  borderBottom: "2px solid #f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 12
                 }}>
-                  <div style={{ 
-                    fontWeight: 700, 
-                    marginBottom: 20, 
-                    color: "#1e293b", 
-                    fontSize: 20,
-                    paddingBottom: 16,
-                    borderBottom: "2px solid #f1f5f9",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12
-                  }}>
-                    <span style={{ 
-                      background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", 
-                      width: 40, 
-                      height: 40, 
-                      borderRadius: "50%", 
-                      display: "flex", 
-                      alignItems: "center", 
-                      justifyContent: "center",
-                      color: "white",
-                      fontSize: 18
-                    }}>🎯</span>
-                    Master {skill}
-                  </div>
+                  <span style={{ 
+                    background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", 
+                    width: 40, 
+                    height: 40, 
+                    borderRadius: "50%", 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center",
+                    color: "white",
+                    fontSize: 18
+                  }}>🎯</span>
+                  Master {skill}
+                </div>
+                
+                {/* Horizontally scrollable video recommendations */}
+                <div style={{
+                  position: "relative"
+                }}>
                   <AIRecommendations skill={skill} />
                 </div>
-              ))}
-            </div>
-          )}
-        </Section>
-
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
         {/* Enhanced Career Development Resources */}
         <Section 
           title="Career Growth Resources" 
