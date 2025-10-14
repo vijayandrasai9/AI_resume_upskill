@@ -2411,22 +2411,34 @@ export default function Dashboard() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
                 {[
                   {
-                    title: "How to speak so that people want to listen",
-                    channel: "TED",
-                    url: "https://www.youtube.com/watch?v=eIho2S0ZahI",
-                    thumbnail: "https://img.youtube.com/vi/eIho2S0ZahI/mqdefault.jpg"
+                    title: "What Are Soft Skills? Top 8",
+                    channel: "Communication Coach Alexander Lyon",
+                    url: "https://www.youtube.com/watch?v=hZSARM4VaVs",
+                    thumbnail: "https://img.youtube.com/vi/hZSARM4VaVs/hqdefault.jpg"
                   },
                   {
-                    title: "The power of listening | William Ury",
-                    channel: "TED",
-                    url: "https://www.youtube.com/watch?v=saXfavo1OQo",
-                    thumbnail: "https://img.youtube.com/vi/saXfavo1OQo/mqdefault.jpg"
+                    title: "Top 5 Communication Skills",
+                    channel: "Communication Coach Alexander Lyon",
+                    url: "https://www.youtube.com/watch?v=Ftt2q2n5uvY",
+                    thumbnail: "https://img.youtube.com/vi/Ftt2q2n5uvY/hqdefault.jpg"
                   },
                   {
-                    title: "How to have difficult conversations",
-                    channel: "Harvard Business Review",
-                    url: "https://www.youtube.com/watch?v=67GYM7dlPrg",
-                    thumbnail: "https://img.youtube.com/vi/67GYM7dlPrg/mqdefault.jpg"
+                    title: "5 Simple Habits to Instantly Improve Your Conversations",
+                    channel: "FOCUS inspired",
+                    url: "https://www.youtube.com/watch?v=qelD5Je8k8g",
+                    thumbnail: "https://img.youtube.com/vi/qelD5Je8k8g/mqdefault.jpg"
+                  },
+                  {
+                    title: "The Power of Soft Skills: Communication and Emotional Intelligence in Team Success",
+                    channel: "NobelBiz",
+                    url: "https://www.youtube.com/watch?v=IHXdiTo3kJ0",
+                    thumbnail: "https://img.youtube.com/vi/IHXdiTo3kJ0/hqdefault.jpg"
+                  },
+                  {
+                    title: "How to Communicate Clearly and Concisely (Free Mini-Training)",
+                    channel: "Communication Coach Alexander Lyon",
+                    url: "https://www.youtube.com/watch?v=YJXUOJKtn8o",
+                    thumbnail: "https://img.youtube.com/vi/YJXUOJKtn8o/hqdefault.jpg"
                   }
                 ].map((video, index) => (
                   <div 
@@ -2499,22 +2511,34 @@ export default function Dashboard() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
                 {[
                   {
-                    title: "How to find and do work you love",
-                    channel: "TED",
-                    url: "https://www.youtube.com/watch?v=jpe-LKn-4gM",
-                    thumbnail: "https://img.youtube.com/vi/jpe-LKn-4gM/mqdefault.jpg"
+                    title: "Career Growth Strategies",
+                    channel: "Coach Samuel Ibanda",
+                    url: "https://www.youtube.com/watch?v=WdlkRY1YSro",
+                    thumbnail: "https://img.youtube.com/vi/WdlkRY1YSro/hqdefault.jpg"
                   },
                   {
-                    title: "The career advice you probably didn't get",
-                    channel: "TED",
-                    url: "https://www.youtube.com/watch?v=ww1L-aaNxqI",
-                    thumbnail: "https://img.youtube.com/vi/ww1L-aaNxqI/mqdefault.jpg"
+                    title: "How to Build Your Career Development Plan Step by Step",
+                    channel: "Andrew LaCivita",
+                    url: "https://www.youtube.com/watch?v=qToX7i06pjk",
+                    thumbnail: "https://img.youtube.com/vi/qToX7i06pjk/mqdefault.jpg"
                   },
                   {
-                    title: "How to design your career path",
-                    channel: "Harvard Business Review",
-                    url: "https://www.youtube.com/watch?v=3z_44pS1p-o",
-                    thumbnail: "https://img.youtube.com/vi/3z_44pS1p-o/mqdefault.jpg"
+                    title: "The Road Ahead: Strategic Career Planning and Progression",
+                    channel: "MRA org",
+                    url: "https://www.youtube.com/watch?v=jgXK_B3VBz4",
+                    thumbnail: "https://img.youtube.com/vi/jgXK_B3VBz4/hqdefault.jpg"
+                  },
+                  {
+                    title: "The Truth About Career Progression",
+                    channel: "Richard Edge (TEDxPCL)",
+                    url: "https://www.youtube.com/watch?v=NX6qIbflNyY",
+                    thumbnail: "https://img.youtube.com/vi/NX6qIbflNyY/hqdefault.jpg"
+                  },
+                  {
+                    title: "Work Ready: Career Planning 101",
+                    channel: "LA County Library / with Allan Brown",
+                    url: "https://www.youtube.com/watch?v=dzQyphjVb1k",
+                    thumbnail: "https://img.youtube.com/vi/M9QHTOayFnU/hqdefault.jpg"
                   }
                 ].map((video, index) => (
                   <div 
