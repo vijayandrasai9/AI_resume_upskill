@@ -378,7 +378,7 @@ function StatsCard({ title, value, icon, color, trend }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)",
+        background: "#DDDDDD",
         borderRadius: 16,
         padding: 24,
         border: "1px solid #e2e8f0",
@@ -395,7 +395,7 @@ function StatsCard({ title, value, icon, color, trend }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div>
           <div style={{ 
-            color: "#64748b", 
+            color: "#000000", 
             fontSize: 14, 
             fontWeight: 600,
             marginBottom: 8
@@ -1121,7 +1121,7 @@ export default function Dashboard() {
       {/* Enhanced Sidebar */}
       <div style={{ 
         width: 200, 
-        background: "linear-gradient(180deg, #1e293b 0%, #0f172a 100%)", 
+        background: "#2D3A3A", 
         color: "#e2e8f0", 
         padding: 24, 
         position: "fixed",
@@ -1197,7 +1197,8 @@ export default function Dashboard() {
         overflowX: "hidden",
         minHeight: "100vh",
         maxWidth: "calc(100vw - 280px)",
-        boxSizing: "border-box"
+        boxSizing: "border-box",          
+        background: "linear-gradient(135deg, #D5D9B2 0%, #ECE2D0 100%)"
       }}>
         {/* Welcome Header */}
         <div style={{ 
@@ -1216,7 +1217,7 @@ export default function Dashboard() {
           </h1>
           <p style={{ 
             margin: 0, 
-            color: "#64748b", 
+            color: "#000000", 
             fontSize: 16,
             fontWeight: 500
           }}>
@@ -1235,27 +1236,27 @@ export default function Dashboard() {
             title="Resumes Uploaded" 
             value={resumeFiles.length} 
             icon="📄"
-            color="linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+            color="#000000"
           />
           <StatsCard 
             title="Desired Roles" 
             value={desiredRoles.length} 
             icon="🎯"
-            color="linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+            color="#000000"
     
           />
           <StatsCard 
             title="Roles in Progress" 
             value={appliedRoles.length} 
             icon="🚀"
-            color="linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+            color="#000000"
   
           />
           <StatsCard 
             title="Skills Learned" 
             value={profile.resumeDetectedSkills.length} 
             icon="⭐"
-            color="linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+            color="#000000"
           />
         </div>
 
@@ -2600,6 +2601,7 @@ export default function Dashboard() {
 }
 
 // Enhanced Floating Chat Bubble Component
+// Enhanced Floating Chat Bubble Component
 function FloatingChatBubble() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -2609,15 +2611,17 @@ function FloatingChatBubble() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
   const messagesEndRef = useRef(null);
-  const [chatSize, setChatSize] = useState({ width: 380, height: 600 });
+  const messagesContainerRef = useRef(null);
+  
+  // Calculate 35% of screen width
+  const chatWidth = useMemo(() => {
+    return Math.min(window.innerWidth * 0.35, 600); // 35% of screen width, max 600px
+  }, []);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  const chatHeight = 600; // You can adjust this as needed
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  // Remove auto-scroll to bottom effect
+  // Remove the scrollToBottom function and its useEffect
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -2689,15 +2693,15 @@ function FloatingChatBubble() {
         )}
       </div>
 
-      {/* Enhanced Chat Window */}
+      {/* Enhanced Chat Window - Now 35% of screen width */}
       {isOpen && (
         <div
           style={{
             position: "fixed",
             bottom: 100,
             right: 24,
-            width: chatSize.width,
-            height: chatSize.height,
+            width: chatWidth,
+            height: chatHeight,
             backgroundColor: "white",
             borderRadius: 20,
             boxShadow: "0 20px 60px rgba(0, 0, 0, 0.15)",
@@ -2753,50 +2757,43 @@ function FloatingChatBubble() {
             </div>
           </div>
 
-          {/* Enhanced Messages */}
-          <div style={{ 
-            flex: 1,
-            overflowY: "auto", 
-            padding: 24,
-            backgroundColor: "#f8fafc",
-            backgroundImage: "radial-gradient(#e2e8f0 1px, transparent 1px)",
-            backgroundSize: "20px 20px"
-          }}>
+          {/* Enhanced Messages - Start from top */}
+{/* Enhanced Messages - Start from top with proper code wrapping */}
+       {/* Enhanced Messages - Start from top with proper width */}
+          <div 
+            ref={messagesContainerRef}
+            style={{ 
+              flex: 1,
+              overflowY: "auto", 
+              padding: "16px 12px", // Reduced horizontal padding
+              backgroundColor: "#f8fafc",
+              backgroundImage: "radial-gradient(#e2e8f0 1px, transparent 1px)",
+              backgroundSize: "20px 20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px" // Add gap between messages
+            }}
+          >
             {messages.map((m, i) => (
               <div
                 key={i}
                 style={{
                   display: "flex",
                   justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-                  marginBottom: 16,
+                  width: "100%",
                 }}
               >
-                <div
-                  style={{
-                    maxWidth: "80%",
-                    padding: "16px 20px",
-                    borderRadius: m.role === "user" ? "20px 20px 4px 20px" : "20px 20px 20px 4px",
-                    background: m.role === "user" 
-                      ? "linear-gradient(135deg, #667eea 0%, #764ba2 100%)" 
-                      : "white",
-                    color: m.role === "user" ? "white" : "#1e293b",
-                    boxShadow: m.role === "user" 
-                      ? "0 4px 12px rgba(102, 126, 234, 0.3)" 
-                      : "0 2px 8px rgba(0,0,0,0.08)",
-                    fontSize: 14,
-                    lineHeight: 1.5
-                  }}
-                >
-                  <MarkdownMessage text={m.content} isUser={m.role === "user"} />
-                </div>
+                <MarkdownMessage text={m.content} isUser={m.role === "user"} />
               </div>
             ))}
             {isLoading && (
-              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+              <div style={{ display: "flex", justifyContent: "flex-start", width: "100%" }}>
                 <div style={{
-                  padding: "16px 20px",
-                  borderRadius: "20px 20px 20px 4px",
-                  backgroundColor: "white",
+                  width: "100%",
+                  maxWidth: "100%",
+                  padding: "12px 16px",
+                  borderRadius: "18px 18px 18px 4px",
+                  backgroundColor: "#e5e7eb",
                   color: "#64748b",
                   fontSize: 14,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.08)"
@@ -2812,9 +2809,7 @@ function FloatingChatBubble() {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
           </div>
-
           {/* Enhanced Input */}
           <div style={{ 
             padding: 20, 
