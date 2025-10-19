@@ -52,14 +52,14 @@ function Section({ title, right, children, gradient, className = "" }) {
           <div style={{
             width: 4,
             height: 24,
-            background: "linear-gradient(to right, #e0eafc, #cfdef3)",
+            background: "linear-gradient(to right, #000000ff, #000000ff)",
             borderRadius: 10
           }} />
           <h3 style={{ 
             margin: 0, 
             fontSize: 20, 
             fontWeight: 700,
-            background: "linear-gradient(to right, #e0eafc, #cfdef3)",
+            background: "linear-gradient(to right, #000000ff, #000000ff)",
             WebkitBackgroundClip: "text",
             WebkitTextFillColor: "transparent"
           }}>
